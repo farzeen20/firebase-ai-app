@@ -1,3 +1,58 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "login-background",
+      "description": "Abstract background with gold and green tones representing savings and growth.",
+      "imageUrl": "https://images.unsplash.com/photo-1577404815933-af0f17ee29a6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxhYnN0cmFjdCUyMHNhdmluZ3N8ZW58MHx8fHwxNzU5NjgxMTc2fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "abstract savings"
+    },
+    {
+      "id": "user-avatar",
+      "description": "A placeholder for a user's avatar.",
+      "imageUrl": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxwZXJzb24lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NTk2MjQ1ODZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person portrait"
+    },
+    {
+      "id": "user-avatar-2",
+      "description": "A placeholder for a second user's avatar.",
+      "imageUrl": "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHx3b21hbiUyMHBvcnRyYWl0fGVufDB8fHx8MTc1OTYyOTkwN3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman portrait"
+    },
+    {
+      "id": "child-avatar-1",
+      "description": "A placeholder for a child's avatar.",
+      "imageUrl": "https://images.unsplash.com/photo-1595280983913-0d2e57a2fc43?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxjaGlsZCUyMHBvcnRyYWl0fGVufDB8fHx8MTc1OTYzODM1OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "child portrait"
+    },
+    {
+      "id": "literacy-1",
+      "description": "A person reading a book about finance.",
+      "imageUrl": "https://images.unsplash.com/photo-1557804483-ef3ae78eca57?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8ZmluYW5jZSUyMGJvb2t8ZW58MHx8fHwxNzU5NjgxMTc2fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "finance book"
+    },
+    {
+      "id": "literacy-2",
+      "description": "Charts and graphs on a screen, indicating financial analysis.",
+      "imageUrl": "https://images.unsplash.com/photo-1745509267699-1b1db256601e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxmaW5hbmNlJTIwY2hhcnR8ZW58MHx8fHwxNzU5NTc0NTIwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "finance chart"
+    },
+    {
+      "id": "literacy-3",
+      "description": "A piggy bank with coins, symbolizing savings.",
+      "imageUrl": "https://images.unsplash.com/photo-1628282928695-29aaa1536c11?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxwaWdneSUyMGJhbmt8ZW58MHx8fHwxNzU5NjgxMTc2fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "piggy bank"
+    },
+    {
+      "id": "literacy-4",
+      "description": "People collaborating around a table with documents.",
+      "imageUrl": "https://images.unsplash.com/photo-1579621970588-a35d0e7ab9b6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxmaW5hbmNpYWwlMjBwbGFubmluZ3xlbnwwfHx8fDE3NTk2NTkwMjZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "financial planning"
+    },
+    {
+      "id": "receipt-scan",
+      "description": "A photo of a shopping receipt.",
+      "imageUrl": "https://images.unsplash.com/photo-1644370644949-b175294cbceb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxzaG9wcGluZyUyMHJlY2VpcHR8ZW58MHx8fHwxNzU5NjgxMTc2fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "shopping receipt"
+    }
+  ]
 }
