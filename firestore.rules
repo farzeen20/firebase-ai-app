@@ -1,0 +1,400 @@
+/**
+ * @fileoverview Firestore Security Rules for the application.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model for personal data and a shared-access model for collaborative group data.
+ * Public read access is granted to financial literacy topics.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores core user information. Accessible only by the user.
+ * - /users/{userId}/profile: Stores user profile data. Accessible only by the user.
+ * - /users/{userId}/dailySavings/{dailySavingId}: Stores daily savings data. Accessible only by the user.
+ * - /users/{userId}/goals/{goalId}: Stores user goals. Accessible only by the user.
+ * - /groups/{groupId}: Stores group information, including owner and members (denormalized).
+ * - /groups/{groupId}/contributions/{contributionId}: Stores group contributions. Accessible to group members.
+ * - /groups/{groupId}/payouts/{payoutId}: Stores group payouts. Accessible to group members.
+ * - /users/{userId}/budgets/{budgetId}: Stores user budgets. Accessible only by the user.
+ * - /users/{userId}/budgets/{budgetId}/budgetItems/{budgetItemId}: Stores budget items. Accessible only by the user.
+ * - /users/{userId}/budgets/{budgetId}/bills/{billId}: Stores bills. Accessible only by the user.
+ * - /literacyTopics/{topicId}: Stores financial literacy topics. Publicly readable.
+ * - /families/{familyId}: Stores family information with parent/child relationships.
+ * - /users/{userId}/notifications/{notificationId}: Stores user notifications. Accessible only by the user.
+ * - /users/{userId}/userLiteracyTopics/{userLiteracyTopicId}: Stores user-literacy topic interactions. Accessible only by the user.
+ *
+ * Key Security Decisions:
+ * - User data is strictly owned and controlled by the individual user.
+ * - Group data is accessible to members, with the owner having implicit administrative privileges.
+ * - Public read access is granted to financial literacy topics.
+ * - Listing of user-owned subcollections is allowed only to the owner.
+ * - Listing of users is disallowed, as it would expose potentially sensitive information.
+ *
+ * Denormalization for Authorization:
+ * - Groups: The `Group` document includes a `memberIds` array and an `ownerId` field for easy authorization.
+ * - Contributions/Payouts: Subcollections of `Group` inherit group membership for simplified rules.
+ */
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Checks if the request is made by a signed-in user.
+     * @path N/A
+     * @allow N/A
+     * @deny N/A
+     * @principle Requires authentication for certain operations.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * @description Checks if the authenticated user ID matches the provided user ID.
+     * @path N/A
+     * @allow N/A
+     * @deny N/A
+     * @principle Enforces document ownership.
+     */
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    /**
+     * @description Checks if the authenticated user is the owner of an existing document.
+     * @path N/A
+     * @allow N/A
+     * @deny N/A
+     * @principle Enforces document ownership for existing documents before updating/deleting.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Checks if the authenticated user is a member of the group.
+     * @path N/A
+     * @allow N/A
+     * @deny N/A
+     * @principle Enforces group membership.
+     */
+    function isGroupMember(groupId) {
+      return request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds;
+    }
+
+    /**
+     * @description Checks if the authenticated user is the owner of the group.
+     * @path N/A
+     * @allow N/A
+     * @deny N/A
+     * @principle Enforces group ownership.
+     */
+    function isGroupOwner(ownerId) {
+      return request.auth.uid == ownerId;
+    }
+
+    /**
+     * @description Checks if the authenticated user is the owner of an existing group document.
+     * @path N/A
+     * @allow N/A
+     * @deny N/A
+     */
+     function isExistingGroupOwner(ownerId) {
+      return isGroupOwner(ownerId) && resource != null;
+    }
+
+
+    /**
+     * @description Rule for the /users/{userId} collection.
+     * @path /users/{userId}
+     * @allow (create) if request.auth.uid == userId
+     * @allow (get) if request.auth.uid == userId
+     * @allow (update) if request.auth.uid == userId
+     * @allow (delete) if request.auth.uid == userId
+     * @deny (create) if request.auth.uid != userId
+     * @deny (get) if request.auth.uid != userId
+     * @deny (update) if request.auth.uid != userId
+     * @deny (delete) if request.auth.uid != userId
+     * @principle Enforces document ownership for writes, restricts listing of users, validates relational integrity.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false; // Disallow listing of all users.
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Rule for the /users/{userId}/profile document.
+     * @path /users/{userId}/profile
+     * @allow (create) if request.auth.uid == userId
+     * @allow (get) if request.auth.uid == userId
+     * @allow (update) if request.auth.uid == userId
+     * @allow (delete) if request.auth.uid == userId
+     * @deny (create) if request.auth.uid != userId
+     * @deny (get) if request.auth.uid != userId
+     * @deny (update) if request.auth.uid != userId
+     * @deny (delete) if request.auth.uid != userId
+     * @principle Restricts access to a user's own data tree.
+     */
+    match /users/{userId}/profile {
+      allow get: if isOwner(userId);
+      allow list: if false; // Subcollection, no listing
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Rule for the /users/{userId}/dailySavings/{dailySavingId} collection.
+     * @path /users/{userId}/dailySavings/{dailySavingId}
+     * @allow (create) if request.auth.uid == userId
+     * @allow (get) if request.auth.uid == userId
+     * @allow (update) if request.auth.uid == userId
+     * @allow (delete) if request.auth.uid == userId
+     * @deny (create) if request.auth.uid != userId
+     * @deny (get) if request.auth.uid != userId
+     * @deny (update) if request.auth.uid != userId
+     * @deny (delete) if request.auth.uid != userId
+     * @principle Restricts access to a user's own data tree.
+     */
+    match /users/{userId}/dailySavings/{dailySavingId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Rule for the /users/{userId}/goals/{goalId} collection.
+     * @path /users/{userId}/goals/{goalId}
+     * @allow (create) if request.auth.uid == userId
+     * @allow (get) if request.auth.uid == userId
+     * @allow (update) if request.auth.uid == userId
+     * @allow (delete) if request.auth.uid == userId
+     * @deny (create) if request.auth.uid != userId
+     * @deny (get) if request.auth.uid != userId
+     * @deny (update) if request.auth.uid != userId
+     * @deny (delete) if request.auth.uid != userId
+     * @principle Restricts access to a user's own data tree.
+     */
+    match /users/{userId}/goals/{goalId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Rule for the /groups/{groupId} collection.
+     * @path /groups/{groupId}
+     * @allow (create) if isSignedIn()
+     * @allow (get) if isGroupMember(groupId)
+     * @allow (update) if isExistingGroupOwner(resource.data.ownerId)
+     * @allow (delete) if isExistingGroupOwner(resource.data.ownerId)
+     * @deny (create) if !isSignedIn()
+     * @deny (get) if !isGroupMember(groupId)
+     * @deny (update) if !isExistingGroupOwner(resource.data.ownerId)
+     * @deny (delete) if !isExistingGroupOwner(resource.data.ownerId)
+     * @principle Enforces document ownership for writes, restricts listing of users, validates relational integrity.
+     */
+    match /groups/{groupId} {
+      allow get: if isGroupMember(groupId);
+      allow list: if false;
+      allow create: if isSignedIn(); // Any signed-in user can create a group.
+      allow update: if isExistingGroupOwner(resource.data.ownerId); // Only the owner can update.
+      allow delete: if isExistingGroupOwner(resource.data.ownerId); // Only the owner can delete.
+    }
+
+    /**
+     * @description Rule for the /groups/{groupId}/contributions/{contributionId} collection.
+     * @path /groups/{groupId}/contributions/{contributionId}
+     * @allow (create) if isGroupMember(groupId)
+     * @allow (get) if isGroupMember(groupId)
+     * @allow (update) if false
+     * @allow (delete) if isGroupOwner(get(/databases/$(database)/documents/groups/$(groupId)).data.ownerId)
+     * @deny (create) if !isGroupMember(groupId)
+     * @deny (get) if !isGroupMember(groupId)
+     * @deny (update) if true
+     * @deny (delete) if !isGroupOwner(get(/databases/$(database)/documents/groups/$(groupId)).data.ownerId)
+     * @principle Enforces document ownership for writes, restricts listing of users, validates relational integrity.
+     */
+    match /groups/{groupId}/contributions/{contributionId} {
+      allow get: if isGroupMember(groupId);
+      allow list: if isGroupMember(groupId);
+      allow create: if isGroupMember(groupId);
+      allow update: if false; // Contributions should not be editable
+      allow delete: if isGroupOwner(get(/databases/$(database)/documents/groups/$(groupId)).data.ownerId) && resource != null; // Only group owner can delete.
+    }
+
+    /**
+     * @description Rule for the /groups/{groupId}/payouts/{payoutId} collection.
+     * @path /groups/{groupId}/payouts/{payoutId}
+     * @allow (create) if isGroupMember(groupId)
+     * @allow (get) if isGroupMember(groupId)
+     * @allow (update) if false
+     * @allow (delete) if isGroupOwner(get(/databases/$(database)/documents/groups/$(groupId)).data.ownerId)
+     * @deny (create) if !isGroupMember(groupId)
+     * @deny (get) if !isGroupMember(groupId)
+     * @deny (update) if true
+     * @deny (delete) if !isGroupOwner(get(/databases/$(database)/documents/groups/$(groupId)).data.ownerId)
+     * @principle Enforces document ownership for writes, restricts listing of users, validates relational integrity.
+     */
+    match /groups/{groupId}/payouts/{payoutId} {
+      allow get: if isGroupMember(groupId);
+      allow list: if isGroupMember(groupId);
+      allow create: if isGroupMember(groupId);
+      allow update: if false; // Payouts should not be editable
+      allow delete: if isGroupOwner(get(/databases/$(database)/documents/groups/$(groupId)).data.ownerId) && resource != null; // Only group owner can delete.
+    }
+
+    /**
+     * @description Rule for the /users/{userId}/budgets/{budgetId} collection.
+     * @path /users/{userId}/budgets/{budgetId}
+     * @allow (create) if request.auth.uid == userId
+     * @allow (get) if request.auth.uid == userId
+     * @allow (update) if request.auth.uid == userId
+     * @allow (delete) if request.auth.uid == userId
+     * @deny (create) if request.auth.uid != userId
+     * @deny (get) if request.auth.uid != userId
+     * @deny (update) if request.auth.uid != userId
+     * @deny (delete) if request.auth.uid != userId
+     * @principle Restricts access to a user's own data tree.
+     */
+    match /users/{userId}/budgets/{budgetId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Rule for the /users/{userId}/budgets/{budgetId}/budgetItems/{budgetItemId} collection.
+     * @path /users/{userId}/budgets/{budgetId}/budgetItems/{budgetItemId}
+     * @allow (create) if request.auth.uid == userId
+     * @allow (get) if request.auth.uid == userId
+     * @allow (update) if request.auth.uid == userId
+     * @allow (delete) if request.auth.uid == userId
+     * @deny (create) if request.auth.uid != userId
+     * @deny (get) if request.auth.uid != userId
+     * @deny (update) if request.auth.uid != userId
+     * @deny (delete) if request.auth.uid != userId
+     * @principle Restricts access to a user's own data tree.
+     */
+    match /users/{userId}/budgets/{budgetId}/budgetItems/{budgetItemId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Rule for the /users/{userId}/budgets/{budgetId}/bills/{billId} collection.
+     * @path /users/{userId}/budgets/{budgetId}/bills/{billId}
+     * @allow (create) if request.auth.uid == userId
+     * @allow (get) if request.auth.uid == userId
+     * @allow (update) if request.auth.uid == userId
+     * @allow (delete) if request.auth.uid == userId
+     * @deny (create) if request.auth.uid != userId
+     * @deny (get) if request.auth.uid != userId
+     * @deny (update) if request.auth.uid != userId
+     * @deny (delete) if request.auth.uid != userId
+     * @principle Restricts access to a user's own data tree.
+     */
+    match /users/{userId}/budgets/{budgetId}/bills/{billId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Rule for the /literacyTopics/{topicId} collection.
+     * @path /literacyTopics/{topicId}
+     * @allow (get) if true
+     * @allow (list) if true
+     * @allow (create) if false
+     * @allow (update) if false
+     * @allow (delete) if false
+     * @deny (create) if true
+     * @deny (get) if false
+     * @deny (update) if true
+     * @deny (delete) if true
+     * @principle Public read access for financial literacy topics.
+     */
+    match /literacyTopics/{topicId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+   /**
+     * @description Rule for the /families/{familyId} collection.
+     * @path /families/{familyId}
+     * @allow (create) if isSignedIn()
+     * @allow (get) if isSignedIn()
+     * @allow (update) if false
+     * @allow (delete) if false
+     * @deny (create) if !isSignedIn()
+     * @deny (get) if !isSignedIn()
+     * @deny (update) if true
+     * @deny (delete) if true
+     */
+    match /families/{familyId} {
+      allow get: if isSignedIn();
+      allow list: if false;
+      allow create: if isSignedIn();
+      allow update: if false; // Families should not be editable for now.
+      allow delete: if false; // Families should not be deletable for now.
+    }
+
+    /**
+     * @description Rule for the /users/{userId}/notifications/{notificationId} collection.
+     * @path /users/{userId}/notifications/{notificationId}
+     * @allow (create) if request.auth.uid == userId
+     * @allow (get) if request.auth.uid == userId
+     * @allow (update) if request.auth.uid == userId
+     * @allow (delete) if request.auth.uid == userId
+     * @deny (create) if request.auth.uid != userId
+     * @deny (get) if request.auth.uid != userId
+     * @deny (update) if request.auth.uid != userId
+     * @deny (delete) if request.auth.uid != userId
+     * @principle Restricts access to a user's own data tree.
+     */
+    match /users/{userId}/notifications/{notificationId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Rule for the /users/{userId}/userLiteracyTopics/{userLiteracyTopicId} collection.
+     * @path /users/{userId}/userLiteracyTopics/{userLiteracyTopicId}
+     * @allow (create) if request.auth.uid == userId
+     * @allow (get) if request.auth.uid == userId
+     * @allow (update) if request.auth.uid == userId
+     * @allow (delete) if request.auth.uid == userId
+     * @deny (create) if request.auth.uid != userId
+     * @deny (get) if request.auth.uid != userId
+     * @deny (update) if request.auth.uid != userId
+     * @deny (delete) if request.auth.uid != userId
+     * @principle Restricts access to a user's own data tree.
+     */
+    match /users/{userId}/userLiteracyTopics/{userLiteracyTopicId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+  }
+}

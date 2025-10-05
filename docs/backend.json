@@ -1,0 +1,823 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user entity."
+        },
+        "firstName": {
+          "type": "string",
+          "description": "The user's first name."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "The user's last name."
+        },
+        "cnic": {
+          "type": "string",
+          "description": "The user's national identification number."
+        },
+        "phone": {
+          "type": "string",
+          "description": "The user's phone number."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address.",
+          "format": "email"
+        },
+        "bankAccount": {
+          "type": "string",
+          "description": "Tokenized bank account details."
+        },
+        "language": {
+          "type": "array",
+          "description": "An array of preferred languages for the user.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "twoFAEnabled": {
+          "type": "boolean",
+          "description": "Indicates if two-factor authentication is enabled for the user."
+        },
+        "profileId": {
+          "type": "string",
+          "description": "Reference to UserProfile. (Relationship: User 1:1 UserProfile)"
+        }
+      },
+      "required": [
+        "id",
+        "firstName",
+        "lastName",
+        "cnic",
+        "phone",
+        "email",
+        "bankAccount"
+      ]
+    },
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Represents the profile information of a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user profile entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The user's full name."
+        },
+        "cnic": {
+          "type": "string",
+          "description": "The user's national identification number."
+        },
+        "phone": {
+          "type": "string",
+          "description": "The user's phone number."
+        },
+        "location": {
+          "type": "string",
+          "description": "The user's location."
+        },
+        "bankAccount": {
+          "type": "string",
+          "description": "The user's bank account information."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "cnic",
+        "phone",
+        "location",
+        "bankAccount"
+      ]
+    },
+    "DailySaving": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "DailySaving",
+      "type": "object",
+      "description": "Represents a user's daily saving record.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the daily saving record."
+        },
+        "dailyAmount": {
+          "type": "number",
+          "description": "The amount saved daily."
+        },
+        "currentBalance": {
+          "type": "number",
+          "description": "The current balance of savings."
+        },
+        "startDate": {
+          "type": "string",
+          "description": "The start date of the saving record.",
+          "format": "date-time"
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Indicates if the saving record is currently active."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N DailySaving)"
+        }
+      },
+      "required": [
+        "id",
+        "dailyAmount",
+        "currentBalance",
+        "startDate",
+        "isActive",
+        "userId"
+      ]
+    },
+    "Goal": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Goal",
+      "type": "object",
+      "description": "Represents a user's saving goal.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the saving goal."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the saving goal."
+        },
+        "targetAmount": {
+          "type": "number",
+          "description": "The target amount to be saved."
+        },
+        "savedAmount": {
+          "type": "number",
+          "description": "The current amount saved towards the goal."
+        },
+        "startDate": {
+          "type": "string",
+          "description": "The start date of the saving goal.",
+          "format": "date-time"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "The end date of the saving goal.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the saving goal."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Goal)"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "targetAmount",
+        "savedAmount",
+        "startDate",
+        "status",
+        "userId"
+      ]
+    },
+    "Group": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Group",
+      "type": "object",
+      "description": "Represents a saving committee or group.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the group."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the group."
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Group, Owner)"
+        },
+        "memberIds": {
+          "type": "array",
+          "description": "References to Users. (Relationship: Group N:N User, Members)",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "ownerId"
+      ]
+    },
+    "Contribution": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Contribution",
+      "type": "object",
+      "description": "Represents a contribution made to a group.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the contribution."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount of the contribution."
+        },
+        "date": {
+          "type": "string",
+          "description": "The date the contribution was made.",
+          "format": "date-time"
+        },
+        "groupId": {
+          "type": "string",
+          "description": "Reference to Group. (Relationship: Group 1:N Contribution)"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Contribution)"
+        }
+      },
+      "required": [
+        "id",
+        "amount",
+        "date",
+        "groupId",
+        "userId"
+      ]
+    },
+    "Payout": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Payout",
+      "type": "object",
+      "description": "Represents a payout made from a group.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the payout."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount of the payout."
+        },
+        "date": {
+          "type": "string",
+          "description": "The date the payout was made.",
+          "format": "date-time"
+        },
+        "groupId": {
+          "type": "string",
+          "description": "Reference to Group. (Relationship: Group 1:N Payout)"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Payout)"
+        }
+      },
+      "required": [
+        "id",
+        "amount",
+        "date",
+        "groupId",
+        "userId"
+      ]
+    },
+    "Budget": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Budget",
+      "type": "object",
+      "description": "Represents a user's budget.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the budget."
+        },
+        "category": {
+          "type": "string",
+          "description": "The category of the budget."
+        },
+        "region": {
+          "type": "string",
+          "description": "The region for the budget."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Budget)"
+        }
+      },
+      "required": [
+        "id",
+        "category",
+        "region",
+        "userId"
+      ]
+    },
+    "BudgetItem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "BudgetItem",
+      "type": "object",
+      "description": "Represents an item within a budget.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the budget item."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the budget item."
+        },
+        "price": {
+          "type": "number",
+          "description": "The price of the budget item."
+        },
+        "quantity": {
+          "type": "number",
+          "description": "The quantity of the budget item."
+        },
+        "budgetId": {
+          "type": "string",
+          "description": "Reference to Budget. (Relationship: Budget 1:N BudgetItem)"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "price",
+        "quantity",
+        "budgetId"
+      ]
+    },
+    "Bill": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Bill",
+      "type": "object",
+      "description": "Represents a bill or expense.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the bill."
+        },
+        "regionURL": {
+          "type": "string",
+          "description": "The URL of the bill's region."
+        },
+        "budgetId": {
+          "type": "string",
+          "description": "Reference to Budget. (Relationship: Budget 1:N Bill)"
+        }
+      },
+      "required": [
+        "id",
+        "regionURL",
+        "budgetId"
+      ]
+    },
+    "LiteracyTopic": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "LiteracyTopic",
+      "type": "object",
+      "description": "Represents a financial literacy topic.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the literacy topic."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the literacy topic."
+        },
+        "category": {
+          "type": "string",
+          "description": "The category of the literacy topic."
+        },
+        "content": {
+          "type": "string",
+          "description": "The content of the literacy topic."
+        },
+        "resources": {
+          "type": "array",
+          "description": "An array of resources related to the literacy topic.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "category",
+        "content",
+        "resources"
+      ]
+    },
+    "Family": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Family",
+      "type": "object",
+      "description": "Represents a family group.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the family."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the family."
+        },
+        "parentIds": {
+          "type": "array",
+          "description": "References to Users. (Relationship: Family N:N User, Parent)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "childIds": {
+          "type": "array",
+          "description": "References to Users. (Relationship: Family N:N User, Child)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "sharedGoalIds": {
+          "type": "array",
+          "description": "References to Goals. (Relationship: Family N:N Goal)",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ]
+    },
+    "Notification": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Notification",
+      "type": "object",
+      "description": "Represents a notification.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the notification."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Notification)"
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of notification."
+        },
+        "message": {
+          "type": "string",
+          "description": "The message of the notification."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The timestamp of the notification.",
+          "format": "date-time"
+        },
+        "read": {
+          "type": "boolean",
+          "description": "Indicates if the notification has been read."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "type",
+        "message",
+        "timestamp",
+        "read"
+      ]
+    },
+    "UserLiteracyTopic": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserLiteracyTopic",
+      "type": "object",
+      "description": "Represents a user's interaction with a literacy topic (e.g., bookmark, difficulty rating).",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user literacy topic interaction."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N UserLiteracyTopic)"
+        },
+        "topicId": {
+          "type": "string",
+          "description": "Reference to LiteracyTopic. (Relationship: LiteracyTopic 1:N UserLiteracyTopic)"
+        },
+        "bookmarked": {
+          "type": "boolean",
+          "description": "Indicates if the user bookmarked the literacy topic."
+        },
+        "difficulty": {
+          "type": "string",
+          "description": "The user's rating of the topic's difficulty (e.g., easy, medium, hard)."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "topicId"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user information. Includes denormalized 'userId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/profile",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores user profile information. Accessible only by the user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/dailySavings/{dailySavingId}",
+        "definition": {
+          "entityName": "DailySaving",
+          "schema": {
+            "$ref": "#/backend/entities/DailySaving"
+          },
+          "description": "Stores daily saving records for each user. Accessible only by the user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "dailySavingId",
+              "description": "The unique identifier for the daily saving record."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/goals/{goalId}",
+        "definition": {
+          "entityName": "Goal",
+          "schema": {
+            "$ref": "#/backend/entities/Goal"
+          },
+          "description": "Stores saving goals for each user. Accessible only by the user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "goalId",
+              "description": "The unique identifier for the saving goal."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/groups/{groupId}",
+        "definition": {
+          "entityName": "Group",
+          "schema": {
+            "$ref": "#/backend/entities/Group"
+          },
+          "description": "Stores group information, including ownerId and members. Includes 'members' map for authorization independence.",
+          "params": [
+            {
+              "name": "groupId",
+              "description": "The unique identifier for the group."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/groups/{groupId}/contributions/{contributionId}",
+        "definition": {
+          "entityName": "Contribution",
+          "schema": {
+            "$ref": "#/backend/entities/Contribution"
+          },
+          "description": "Stores contributions made to a group. Includes denormalized 'members' map for authorization independence.",
+          "params": [
+            {
+              "name": "groupId",
+              "description": "The unique identifier for the group."
+            },
+            {
+              "name": "contributionId",
+              "description": "The unique identifier for the contribution."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/groups/{groupId}/payouts/{payoutId}",
+        "definition": {
+          "entityName": "Payout",
+          "schema": {
+            "$ref": "#/backend/entities/Payout"
+          },
+          "description": "Stores payouts made from a group. Includes denormalized 'members' map for authorization independence.",
+          "params": [
+            {
+              "name": "groupId",
+              "description": "The unique identifier for the group."
+            },
+            {
+              "name": "payoutId",
+              "description": "The unique identifier for the payout."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/budgets/{budgetId}",
+        "definition": {
+          "entityName": "Budget",
+          "schema": {
+            "$ref": "#/backend/entities/Budget"
+          },
+          "description": "Stores budget information for each user. Accessible only by the user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "budgetId",
+              "description": "The unique identifier for the budget."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/budgets/{budgetId}/budgetItems/{budgetItemId}",
+        "definition": {
+          "entityName": "BudgetItem",
+          "schema": {
+            "$ref": "#/backend/entities/BudgetItem"
+          },
+          "description": "Stores budget items for a given budget. Accessible only by the user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "budgetId",
+              "description": "The unique identifier for the budget."
+            },
+            {
+              "name": "budgetItemId",
+              "description": "The unique identifier for the budget item."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/budgets/{budgetId}/bills/{billId}",
+        "definition": {
+          "entityName": "Bill",
+          "schema": {
+            "$ref": "#/backend/entities/Bill"
+          },
+          "description": "Stores bills for a given budget. Accessible only by the user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "budgetId",
+              "description": "The unique identifier for the budget."
+            },
+            {
+              "name": "billId",
+              "description": "The unique identifier for the bill."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/literacyTopics/{topicId}",
+        "definition": {
+          "entityName": "LiteracyTopic",
+          "schema": {
+            "$ref": "#/backend/entities/LiteracyTopic"
+          },
+          "description": "Stores financial literacy topics. Publicly readable.",
+          "params": [
+            {
+              "name": "topicId",
+              "description": "The unique identifier for the literacy topic."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/families/{familyId}",
+        "definition": {
+          "entityName": "Family",
+          "schema": {
+            "$ref": "#/backend/entities/Family"
+          },
+          "description": "Stores family information, including parentIds, childIds, and sharedGoals.",
+          "params": [
+            {
+              "name": "familyId",
+              "description": "The unique identifier for the family."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/notifications/{notificationId}",
+        "definition": {
+          "entityName": "Notification",
+          "schema": {
+            "$ref": "#/backend/entities/Notification"
+          },
+          "description": "Stores notifications for each user. Accessible only by the user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "notificationId",
+              "description": "The unique identifier for the notification."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/userLiteracyTopics/{userLiteracyTopicId}",
+        "definition": {
+          "entityName": "UserLiteracyTopic",
+          "schema": {
+            "$ref": "#/backend/entities/UserLiteracyTopic"
+          },
+          "description": "Stores user-specific literacy topic interactions. Accessible only by the user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "userLiteracyTopicId",
+              "description": "The unique identifier for the user literacy topic interaction."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to ensure authorization independence, clarity, and scalability, adhering to the specified principles. It leverages denormalization to avoid hierarchical authorization dependencies and structural segregation to maintain a homogeneous security posture within collections. Access modeling is consistently applied for user-owned and collaborative data. The design supports required QAPs through segregation and membership models. \n\n*   **Users and Profiles:** User data and profiles are stored under `/users/{userId}` and `/users/{userId}/profile` respectively, ensuring path-based ownership. The `profileId` is maintained in `/users/{userId}` to establish a 1:1 relationship. This setup allows secure access to user-specific information. The `users` collection stores core user information, while `userProfiles` stores profile details. The structure enables clear ownership and simplifies security rules based on `request.auth.uid`.\n*   **Daily Savings and Goals:** These are stored as subcollections under each user (`/users/{userId}/dailySavings` and `/users/{userId}/goals`). This enforces strict ownership and avoids the need for complex authorization logic.\n*   **Groups and Committees:** Groups are stored in the `/groups` collection. The `ownerId` field indicates the group creator. For collaborative access, a `members` map is added to each `group` document. The `Contribution` and `Payout` entities, representing group activities, are stored in subcollections under each group (`/groups/{groupId}/contributions` and `/groups/{groupId}/payouts`). This structure enables secure listing of group-related data. To ensure authorization independence, the `members` map from the parent `group` document is denormalized into each `Contribution` and `Payout` document.\n*   **Budgets and Bills:** Budget data is stored under `/users/{userId}/budgets`. Each budget can have multiple budget items, which are stored as subcollections under the corresponding budget (`/users/{userId}/budgets/{budgetId}/budgetItems`). Bills are also stored under the corresponding budget (`/users/{userId}/budgets/{budgetId}/bills`). This hierarchical structure allows clear ownership and simplifies security rules.\n*   **Financial Literacy Hub:** Literacy topics are stored in the `/literacyTopics` collection with public read access. User-specific interactions (bookmarks, difficulty ratings) are stored in the `/users/{userId}/userLiteracyTopics` collection to maintain ownership.\n*   **Family Mode:** Family data is stored in the `/families` collection, and each document contains lists of `parentIds`, `childIds`, and `sharedGoalIds`, creating relationships with users and goals. For authorization independence, consider denormalizing family-related information into user documents if needed for specific access patterns. Alternatively, consider implementing a membership map within families if specific access rules are required.\n*   **Notifications:** Each user's notifications are stored in the `/users/{userId}/notifications` collection. This allows efficient retrieval and management of notifications for each user. This structure ensures that only the user (or an admin) can read/write notifications to their respective node.\n\nThis structure effectively addresses the core design principles: it enforces authorization independence by denormalizing access control data, maintains clarity of intent with its hierarchical structure, avoids custom claims by relying solely on `request.auth.uid` for authorization, and supports secure `list` operations through structural segregation and membership maps."
+  }
+}
