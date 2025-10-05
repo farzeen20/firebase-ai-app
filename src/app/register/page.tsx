@@ -1,5 +1,5 @@
 import { RegisterForm } from '@/components/auth/register-form';
-import { BachatPalLogo } from '@/components/bachat-pal-logo';
+import { BachatBuddyLogo } from '@/components/bachat-buddy-logo';
 
 export default function RegisterPage() {
   return (
@@ -7,9 +7,9 @@ export default function RegisterPage() {
         <div className="mx-auto grid w-full max-w-2xl gap-6">
             <div className="grid gap-2 text-center">
                 <div className="flex justify-center items-center gap-4 mb-4">
-                    <BachatPalLogo className="h-12 w-12" />
+                    <BachatBuddyLogo className="h-12 w-12" />
                     <h1 className="text-4xl font-bold font-headline text-primary">
-                        Join BachatPal
+                        Join Bachat Buddy
                     </h1>
                 </div>
                 <p className="text-balance text-muted-foreground">

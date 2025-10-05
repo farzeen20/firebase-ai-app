@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
-  title: 'BachatPal',
+  title: 'Bachat Buddy',
   description: 'Your friendly guide to smart savings.',
 };
 

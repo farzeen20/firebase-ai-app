@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import { LoginForm } from '@/components/auth/login-form';
-import { BachatPalLogo } from '@/components/bachat-pal-logo';
+import { BachatBuddyLogo } from '@/components/bachat-buddy-logo';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 export default function LoginPage() {
@@ -12,9 +12,9 @@ export default function LoginPage() {
         <div className="mx-auto grid w-[350px] gap-6">
           <div className="grid gap-2 text-center">
             <div className="flex justify-center items-center gap-4 mb-4">
-              <BachatPalLogo className="h-12 w-12" />
+              <BachatBuddyLogo className="h-12 w-12" />
               <h1 className="text-4xl font-bold font-headline text-primary">
-                BachatPal
+                Bachat Buddy
               </h1>
             </div>
             <p className="text-balance text-muted-foreground">

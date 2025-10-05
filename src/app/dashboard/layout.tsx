@@ -1,7 +1,7 @@
 import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
 import { MainNav } from '@/components/dashboard/main-nav';
 import { UserNav } from '@/components/dashboard/user-nav';
-import { BachatPalLogo } from '@/components/bachat-pal-logo';
+import { BachatBuddyLogo } from '@/components/bachat-buddy-logo';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
@@ -16,8 +16,8 @@ export default function DashboardLayout({
         <div className="flex flex-col h-full">
           <div className="p-4 border-b">
             <Link href="/dashboard" className="flex items-center gap-2">
-              <BachatPalLogo className="h-8 w-8 text-primary" />
-              <span className="font-bold text-lg group-data-[collapsible=icon]:hidden">BachatPal</span>
+              <BachatBuddyLogo className="h-8 w-8 text-primary" />
+              <span className="font-bold text-lg group-data-[collapsible=icon]:hidden">Bachat Buddy</span>
             </Link>
           </div>
           <div className="flex-1 overflow-y-auto">

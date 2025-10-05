@@ -23,7 +23,7 @@ export function RegisterForm() {
     
     // For the onboarding experience
     if(typeof window !== 'undefined') {
-        localStorage.setItem('bachatpal_onboarding', 'true');
+        localStorage.setItem('bachatbuddy_onboarding', 'true');
     }
     
     router.push('/dashboard');
