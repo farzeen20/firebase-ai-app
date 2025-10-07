@@ -18,14 +18,17 @@ export function MainNav() {
       <SidebarMenu>
         {navLinks.map((link) => (
           <SidebarMenuItem key={link.href}>
-            <Link href={link.href} legacyBehavior passHref>
+            <Link href={link.href} passHref>
               <SidebarMenuButton
                 isActive={pathname === link.href}
                 tooltip={{ children: link.label, side: 'right' }}
                 className="justify-start"
+                asChild
               >
-                <link.icon className="h-5 w-5" />
-                <span>{link.label}</span>
+                <div>
+                  <link.icon className="h-5 w-5" />
+                  <span>{link.label}</span>
+                </div>
               </SidebarMenuButton>
             </Link>
           </SidebarMenuItem>
