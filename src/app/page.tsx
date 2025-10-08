@@ -1,41 +1,38 @@
-import Image from 'next/image';
-import { LoginForm } from '@/components/auth/login-form';
-import { BachatBuddyLogo } from '@/components/bachat-buddy-logo';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
+'use client';
 
-export default function LoginPage() {
-  const loginBg = PlaceHolderImages.find(p => p.id === 'login-background');
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
+
+export default function SplashScreen() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      router.replace('/login');
+    }, 3000); // 3-second delay
+
+    return () => clearTimeout(timer);
+  }, [router]);
 
   return (
-    <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
-      <div className="flex items-center justify-center py-12">
-        <div className="mx-auto grid w-[350px] gap-6">
-          <div className="grid gap-2 text-center">
-            <div className="flex justify-center items-center gap-4 mb-4">
-              <BachatBuddyLogo className="h-12 w-12" />
-              <h1 className="text-4xl font-bold font-headline text-primary">
-                Bachat Buddy
-              </h1>
-            </div>
-            <p className="text-balance text-muted-foreground">
-              Enter your credentials to access your account
-            </p>
-          </div>
-          <LoginForm />
+    <main
+      className={cn(
+        'flex h-screen w-full flex-col items-center justify-center bg-[#386641] text-[#FFFCB8]'
+      )}
+    >
+      <div className="flex flex-col items-center justify-center space-y-4">
+        <div
+          className={cn(
+            'relative flex h-48 w-48 items-center justify-center rounded-full bg-[#FFFCB8] shadow-lg',
+            'transform -rotate-12' // Slightly tilted
+          )}
+          style={{ boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)' }}
+        >
+          <span className="text-9xl font-bold text-[#386641]">B</span>
         </div>
+        <h1 className="text-5xl font-bold tracking-tight">Bachat Buddy</h1>
       </div>
-      <div className="hidden bg-muted lg:block">
-        {loginBg && (
-          <Image
-            src={loginBg.imageUrl}
-            alt={loginBg.description}
-            width="1920"
-            height="1080"
-            className="h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-            data-ai-hint={loginBg.imageHint}
-          />
-        )}
-      </div>
-    </div>
+    </main>
   );
 }

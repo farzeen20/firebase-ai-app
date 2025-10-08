@@ -62,6 +62,14 @@ export function RegisterForm() {
   });
 
   const onSubmit = async (data: RegisterFormValues) => {
+    if (!auth || !firestore) {
+      toast({
+        variant: 'destructive',
+        title: 'Uh oh! Something went wrong.',
+        description: 'Firebase is not initialized correctly.',
+      });
+      return;
+    }
     try {
       const userCredential = await createUserWithEmailAndPassword(
         auth,
@@ -203,7 +211,7 @@ export function RegisterForm() {
         </Form>
         <div className="mt-4 text-center text-sm">
           Already have an account?{' '}
-          <Link href="/" className="underline">
+          <Link href="/login" className="underline">
             Sign in
           </Link>
         </div>
@@ -211,4 +219,3 @@ export function RegisterForm() {
     </Card>
   );
 }
-    

@@ -48,6 +48,14 @@ export function LoginForm() {
   });
 
   const onSubmit = async (data: LoginFormValues) => {
+    if (!auth) {
+      toast({
+        variant: 'destructive',
+        title: 'Uh oh! Something went wrong.',
+        description: 'Firebase Auth is not initialized.',
+      });
+      return;
+    }
     try {
       await signInWithEmailAndPassword(auth, data.email, data.password);
       router.push('/dashboard');
@@ -116,4 +124,3 @@ export function LoginForm() {
     </>
   );
 }
-    
