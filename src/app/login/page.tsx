@@ -1,10 +1,14 @@
+
+'use client';
 import Image from 'next/image';
 import { LoginForm } from '@/components/auth/login-form';
 import { BachatBuddyLogo } from '@/components/bachat-buddy-logo';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { useLanguage } from '@/context/language-context';
 
 export default function LoginPage() {
   const loginBg = PlaceHolderImages.find(p => p.id === 'login-background');
+  const { t } = useLanguage();
 
   return (
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
@@ -14,11 +18,11 @@ export default function LoginPage() {
             <div className="flex justify-center items-center gap-4 mb-4">
               <BachatBuddyLogo className="h-12 w-12" />
               <h1 className="text-4xl font-bold font-headline text-primary">
-                Bachat Buddy
+                {t('login.title')}
               </h1>
             </div>
             <p className="text-balance text-muted-foreground">
-              Enter your credentials to access your account
+              {t('login.tagline')}
             </p>
           </div>
           <LoginForm />

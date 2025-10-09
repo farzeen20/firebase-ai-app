@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -10,7 +11,6 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -27,6 +27,7 @@ import { useAuth, useFirestore, setDocumentNonBlocking } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { useLanguage } from '@/context/language-context';
 
 
 const registerSchema = z.object({
@@ -47,6 +48,7 @@ export function RegisterForm() {
   const auth = useAuth();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -101,9 +103,9 @@ export function RegisterForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-2xl">Sign Up</CardTitle>
+        <CardTitle className="text-2xl">{t('register.signUpHeader')}</CardTitle>
         <CardDescription>
-          Enter your information to create an account
+          {t('register.signUpDescription')}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -115,9 +117,9 @@ export function RegisterForm() {
                 name="firstName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>First name</FormLabel>
+                    <FormLabel>{t('register.firstNameLabel')}</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ayesha" {...field} />
+                      <Input placeholder={t('register.firstNamePlaceholder')} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -128,9 +130,9 @@ export function RegisterForm() {
                 name="lastName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Last name</FormLabel>
+                    <FormLabel>{t('register.lastNameLabel')}</FormLabel>
                     <FormControl>
-                      <Input placeholder="Khan" {...field} />
+                      <Input placeholder={t('register.lastNamePlaceholder')} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -143,9 +145,9 @@ export function RegisterForm() {
                 name="cnic"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>CNIC</FormLabel>
+                    <FormLabel>{t('register.cnicLabel')}</FormLabel>
                     <FormControl>
-                      <Input placeholder="XXXXX-XXXXXXX-X" {...field} />
+                      <Input placeholder={t('register.cnicPlaceholder')} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -156,9 +158,9 @@ export function RegisterForm() {
                 name="phone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Phone Number</FormLabel>
+                    <FormLabel>{t('register.phoneLabel')}</FormLabel>
                     <FormControl>
-                      <Input placeholder="+92 3XX XXXXXXX" {...field} />
+                      <Input placeholder={t('register.phonePlaceholder')} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -170,9 +172,9 @@ export function RegisterForm() {
               name="bankAccount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Bank Account (IBAN)</FormLabel>
+                  <FormLabel>{t('register.bankAccountLabel')}</FormLabel>
                   <FormControl>
-                    <Input placeholder="PKXX XXXX XXXX XXXX XXXX XXXX" {...field} />
+                    <Input placeholder={t('register.bankAccountPlaceholder')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -183,9 +185,9 @@ export function RegisterForm() {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel>{t('register.emailLabel')}</FormLabel>
                   <FormControl>
-                    <Input placeholder="m@example.com" {...field} />
+                    <Input placeholder={t('register.emailPlaceholder')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -196,7 +198,7 @@ export function RegisterForm() {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Password</FormLabel>
+                  <FormLabel>{t('register.passwordLabel')}</FormLabel>
                   <FormControl>
                     <Input type="password" {...field} />
                   </FormControl>
@@ -205,14 +207,14 @@ export function RegisterForm() {
               )}
             />
             <Button type="submit" className="w-full bg-accent text-accent-foreground hover:bg-accent/90" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? 'Creating Account...' : 'Create an account'}
+              {form.formState.isSubmitting ? t('register.creatingAccount') : t('register.createAccountButton')}
             </Button>
           </form>
         </Form>
         <div className="mt-4 text-center text-sm">
-          Already have an account?{' '}
+          {t('register.haveAccount')}{' '}
           <Link href="/login" className="underline">
-            Sign in
+            {t('register.signIn')}
           </Link>
         </div>
       </CardContent>

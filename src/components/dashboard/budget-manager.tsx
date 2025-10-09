@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -12,6 +13,7 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import type { BudgetItem } from '@/lib/definitions';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '../ui/skeleton';
+import { useLanguage } from '@/context/language-context';
 
 // Mock AI functions
 const categorizeBudgetItems = async (receiptDataUri: string): Promise<BudgetItem[]> => {
@@ -42,6 +44,7 @@ export function BudgetManager() {
     const [isLoading, setIsLoading] = useState(false);
     const [categorizedItems, setCategorizedItems] = useState<BudgetItem[]>([]);
     const [analysisResult, setAnalysisResult] = useState<{ analysis: string; recommendations: string; } | null>(null);
+    const { t } = useLanguage();
     
     const receiptPlaceholder = PlaceHolderImages.find(p => p.id === 'receipt-scan');
 
@@ -73,14 +76,14 @@ export function BudgetManager() {
     return (
         <div className="space-y-8">
             <div>
-                <h1 className="text-3xl font-bold">Budget Manager</h1>
-                <p className="text-muted-foreground">Scan your receipts and let our AI help you track and analyze your spending.</p>
+                <h1 className="text-3xl font-bold">{t('budget.title')}</h1>
+                <p className="text-muted-foreground">{t('budget.description')}</p>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 <Card className="lg:col-span-1">
                     <CardHeader>
-                        <CardTitle>Upload Receipt</CardTitle>
-                        <CardDescription>Upload a photo of your receipt to get started.</CardDescription>
+                        <CardTitle>{t('budget.uploadTitle')}</CardTitle>
+                        <CardDescription>{t('budget.uploadDescription')}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="space-y-2">
@@ -92,8 +95,8 @@ export function BudgetManager() {
                                        <>
                                         {receiptPlaceholder && <Image src={receiptPlaceholder.imageUrl} alt={receiptPlaceholder.description} width={150} height={200} data-ai-hint={receiptPlaceholder.imageHint} className="opacity-20 mb-2" />}
                                         <Upload className="h-8 w-8 mb-2" />
-                                        <p>Click to upload</p>
-                                        <p className="text-xs">PNG, JPG, or WEBP</p>
+                                        <p>{t('budget.clickToUpload')}</p>
+                                        <p className="text-xs">{t('budget.fileTypes')}</p>
                                        </>
                                     )}
                                 </div>
@@ -103,8 +106,8 @@ export function BudgetManager() {
                     </CardContent>
                     <CardFooter>
                         <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90" onClick={handleAnalyzeReceipt} disabled={!receiptImage || isLoading}>
-                            <Bot className="mr-2 h-4 w-4" />
-                            {isLoading ? 'Analyzing...' : 'Analyze with AI'}
+                            <Bot className="me-2 h-4 w-4" />
+                            {isLoading ? t('budget.analyzing') : t('budget.analyzeButton')}
                         </Button>
                     </CardFooter>
                 </Card>
@@ -112,16 +115,16 @@ export function BudgetManager() {
                 <div className="lg:col-span-2 space-y-8">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Categorized Expenses</CardTitle>
-                            <CardDescription>Here's what our AI found on your receipt.</CardDescription>
+                            <CardTitle>{t('budget.expensesTitle')}</CardTitle>
+                            <CardDescription>{t('budget.expensesDescription')}</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Item</TableHead>
-                                        <TableHead>Category</TableHead>
-                                        <TableHead className="text-right">Price</TableHead>
+                                        <TableHead>{t('budget.item')}</TableHead>
+                                        <TableHead>{t('budget.category')}</TableHead>
+                                        <TableHead className="text-right">{t('budget.price')}</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -129,13 +132,13 @@ export function BudgetManager() {
                                         <TableRow key={i}>
                                             <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                                             <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                                            <TableCell className="text-right"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
+                                            <TableCell className="text-right"><Skeleton className="h-4 w-16 ms-auto" /></TableCell>
                                         </TableRow>
                                     ))}
                                     {!isLoading && categorizedItems.length === 0 && (
                                         <TableRow>
                                             <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">
-                                                Upload a receipt to see categorized items.
+                                                {t('budget.uploadPrompt')}
                                             </TableCell>
                                         </TableRow>
                                     )}
@@ -154,7 +157,7 @@ export function BudgetManager() {
                     {analysisResult && !isLoading && (
                          <Alert className="border-primary/50">
                             <Lightbulb className="h-4 w-4 text-primary" />
-                            <AlertTitle className="text-primary font-bold">AI Savings Analysis</AlertTitle>
+                            <AlertTitle className="text-primary font-bold">{t('budget.analysisTitle')}</AlertTitle>
                             <AlertDescription>
                                 <p className="font-semibold">{analysisResult.analysis}</p>
                                 <p className="mt-2">{analysisResult.recommendations}</p>

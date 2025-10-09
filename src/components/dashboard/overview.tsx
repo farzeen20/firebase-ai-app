@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { ChartConfig } from '@/components/ui/chart';
@@ -18,19 +19,17 @@ import {
 } from '@/components/ui/chart';
 import { Bar, BarChart, Pie, PieChart, Cell, ResponsiveContainer, XAxis, YAxis } from 'recharts';
 import { user, dailySavingData, goalsData, committeesData, budgetItemsData } from '@/lib/data';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
-import { ArrowUpRight } from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
+import { useLanguage } from '@/context/language-context';
 
 const goalChartData = goalsData
   .filter((goal) => goal.status === 'active')
-  .map((goal) => ({
+  .map((goal, index) => ({
     name: goal.name,
     saved: goal.savedAmount,
     target: goal.targetAmount,
-    fill: `hsl(var(--chart-${goalsData.indexOf(goal) + 1}))`,
+    fill: `hsl(var(--chart-${index + 1}))`,
   }));
+
 const goalChartConfig = {
   saved: {
     label: 'Saved',
@@ -56,18 +55,21 @@ const spendingChartConfig = {
 } satisfies ChartConfig
 
 export function Overview() {
+  const { t } = useLanguage();
+  const userName = user.name.split(' ')[0];
+
   return (
     <div className="grid gap-4 md:gap-8">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">
-          Welcome back, {user.name.split(' ')[0]}!
+          {t('dashboard.welcome').replace('{name}', userName)}
         </h2>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Total Savings
+              {t('dashboard.totalSavings')}
             </CardTitle>
             <span className="text-2xl">💰</span>
           </CardHeader>
@@ -76,45 +78,45 @@ export function Overview() {
               PKR {dailySavingData.currentBalance.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">
-              +PKR {dailySavingData.dailyAmount.toLocaleString()} today
+              +PKR {dailySavingData.dailyAmount.toLocaleString()} {t('dashboard.today')}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Goals</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.activeGoals')}</CardTitle>
             <span className="text-2xl">🎯</span>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{goalsData.filter(g => g.status === 'active').length}</div>
             <p className="text-xs text-muted-foreground">
-              {goalsData.filter(g => g.status === 'completed').length} completed
+              {goalsData.filter(g => g.status === 'completed').length} {t('dashboard.completed')}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Committees</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.committees')}</CardTitle>
             <span className="text-2xl">👥</span>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">+{committeesData.length}</div>
             <p className="text-xs text-muted-foreground">
-              Currently participating
+              {t('dashboard.participating')}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Family Members
+              {t('dashboard.familyMembers')}
             </CardTitle>
             <span className="text-2xl">👨‍👩‍👧‍👦</span>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">+3</div>
             <p className="text-xs text-muted-foreground">
-              In your family circle
+              {t('dashboard.familyCircle')}
             </p>
           </CardContent>
         </Card>
@@ -122,9 +124,9 @@ export function Overview() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="lg:col-span-4">
           <CardHeader>
-            <CardTitle>Goal Progress</CardTitle>
+            <CardTitle>{t('dashboard.goalProgress')}</CardTitle>
             <CardDescription>
-              Your progress towards your active savings goals.
+              {t('dashboard.goalProgressDescription')}
             </CardDescription>
           </CardHeader>
           <CardContent className="pl-2">
@@ -143,9 +145,9 @@ export function Overview() {
         </Card>
         <Card className="lg:col-span-3">
           <CardHeader>
-            <CardTitle>Spending Habits</CardTitle>
+            <CardTitle>{t('dashboard.spendingHabits')}</CardTitle>
             <CardDescription>
-              Your expense breakdown for this month.
+              {t('dashboard.spendingHabitsDescription')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -172,10 +174,10 @@ export function Overview() {
           </CardContent>
           <CardFooter className="flex-col items-start gap-2 text-sm">
             <div className="flex gap-2 font-medium leading-none">
-              Trending up: Groceries, Transport 📈
+              {t('dashboard.trendingUp').replace('{items}', 'Groceries, Transport')}
             </div>
             <div className="leading-none text-muted-foreground">
-              AI analysis suggests optimizing utility bills.
+              {t('dashboard.aiAnalysis')}
             </div>
           </CardFooter>
         </Card>

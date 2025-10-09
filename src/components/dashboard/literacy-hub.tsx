@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -17,8 +18,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { useLanguage } from '@/context/language-context';
 
 function ArticleCard({ article, onToggleBookmark, onFeedback }: { article: LiteracyArticle; onToggleBookmark: (id: string) => void; onFeedback: (id: string, feedback: 'clear' | 'unclear') => void; }) {
+  const { t } = useLanguage();
   return (
     <Dialog>
       <Card className="flex flex-col overflow-hidden">
@@ -51,16 +54,15 @@ function ArticleCard({ article, onToggleBookmark, onFeedback }: { article: Liter
                   <Image src={article.imageUrl} alt={article.title} fill className="object-cover" data-ai-hint={article.imageHint} />
               </div>
               <p>
-                  This is the full content of the article. In a real application, this would be fetched from a database or CMS.
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse lectus tortor, dignissim sit amet, adipiscing nec, ultricies sed, dolor. Cras elementum ultrices diam. Maecenas ligula massa, varius a, semper congue, euismod non, mi. Proin porttitor, orci nec nonummy molestie, enim est eleifend mi, non fermentum diam nisl sit amet erat. Duis semper. Duis arcu massa, scelerisque vitae, consequat in, pretium a, enim.
+                  {t('literacy.fullArticle')}
               </p>
             </div>
           </DialogDescription>
         </DialogHeader>
         <div className="mt-4 flex items-center gap-4">
-            <p className="text-sm font-medium">Was this article helpful?</p>
-            <Button variant={article.feedback === 'clear' ? 'default' : 'outline'} size="sm" onClick={() => onFeedback(article.id, 'clear')}><ThumbsUp className="mr-2 h-4 w-4" /> Clear</Button>
-            <Button variant={article.feedback === 'unclear' ? 'destructive' : 'outline'} size="sm" onClick={() => onFeedback(article.id, 'unclear')}><ThumbsDown className="mr-2 h-4 w-4" /> Unclear</Button>
+            <p className="text-sm font-medium">{t('literacy.helpful')}</p>
+            <Button variant={article.feedback === 'clear' ? 'default' : 'outline'} size="sm" onClick={() => onFeedback(article.id, 'clear')}><ThumbsUp className="me-2 h-4 w-4" /> {t('literacy.clear')}</Button>
+            <Button variant={article.feedback === 'unclear' ? 'destructive' : 'outline'} size="sm" onClick={() => onFeedback(article.id, 'unclear')}><ThumbsDown className="me-2 h-4 w-4" /> {t('literacy.unclear')}</Button>
         </div>
       </DialogContent>
     </Dialog>
@@ -70,6 +72,7 @@ function ArticleCard({ article, onToggleBookmark, onFeedback }: { article: Liter
 export function LiteracyHub() {
   const [articles, setArticles] = useState<LiteracyArticle[]>(literacyArticlesData);
   const [filter, setFilter] = useState<string>('All');
+  const { t } = useLanguage();
 
   const handleToggleBookmark = (id: string) => {
     setArticles(articles.map(a => a.id === id ? { ...a, bookmarked: !a.bookmarked } : a));
@@ -85,8 +88,8 @@ export function LiteracyHub() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold">Financial Literacy Hub</h1>
-        <p className="text-muted-foreground">Empower yourself with financial knowledge.</p>
+        <h1 className="text-3xl font-bold">{t('literacy.title')}</h1>
+        <p className="text-muted-foreground">{t('literacy.description')}</p>
       </div>
       <div className="flex items-center gap-2 flex-wrap">
         {categories.map(category => (
@@ -103,8 +106,8 @@ export function LiteracyHub() {
             onClick={() => setFilter('Bookmarked')}
             className="text-primary border-primary hover:bg-primary/10 hover:text-primary"
           >
-            <Bookmark className="mr-2 h-4 w-4" />
-            Bookmarked
+            <Bookmark className="me-2 h-4 w-4" />
+            {t('literacy.bookmarked')}
         </Button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

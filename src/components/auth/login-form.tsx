@@ -1,16 +1,9 @@
+
 'use client';
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -26,6 +19,7 @@ import { useAuth } from '@/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { useLanguage } from '@/context/language-context';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -38,6 +32,7 @@ export function LoginForm() {
   const router = useRouter();
   const auth = useAuth();
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -78,9 +73,9 @@ export function LoginForm() {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
+                <FormLabel>{t('login.emailLabel')}</FormLabel>
                 <FormControl>
-                  <Input placeholder="m@example.com" {...field} />
+                  <Input placeholder={t('login.emailPlaceholder')} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -92,12 +87,12 @@ export function LoginForm() {
             render={({ field }) => (
               <FormItem>
                 <div className="flex items-center">
-                  <FormLabel>Password</FormLabel>
+                  <FormLabel>{t('login.passwordLabel')}</FormLabel>
                   <Link
                     href="#"
-                    className="ml-auto inline-block text-sm underline"
+                    className="ms-auto inline-block text-sm underline"
                   >
-                    Forgot your password?
+                    {t('login.forgotPassword')}
                   </Link>
                 </div>
                 <FormControl>
@@ -108,17 +103,17 @@ export function LoginForm() {
             )}
           />
           <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={form.formState.isSubmitting}>
-             {form.formState.isSubmitting ? 'Logging in...' : 'Login'}
+             {form.formState.isSubmitting ? t('login.loggingIn') : t('login.loginButton')}
           </Button>
         </form>
       </Form>
       <Button variant="outline" className="w-full mt-4">
-        Login with Phone
+        {t('login.loginWithPhone')}
       </Button>
       <div className="mt-4 text-center text-sm">
-        Don&apos;t have an account?{' '}
+        {t('login.noAccount')}{' '}
         <Link href="/register" className="underline">
-          Sign up
+          {t('login.signUp')}
         </Link>
       </div>
     </>

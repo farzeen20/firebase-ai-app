@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -15,11 +16,13 @@ import Link from 'next/link';
 import { useUser, useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
+import { useLanguage } from '@/context/language-context';
 
 export function UserNav() {
   const { user } = useUser();
   const auth = useAuth();
   const router = useRouter();
+  const { t } = useLanguage();
 
   const handleLogout = async () => {
     if (!auth) return;
@@ -51,15 +54,15 @@ export function UserNav() {
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
            <DropdownMenuItem asChild>
-            <Link href="/dashboard/settings">Profile</Link>
+            <Link href="/dashboard/settings">{t('userNav.profile')}</Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
-            <Link href="/dashboard/settings">Settings</Link>
+            <Link href="/dashboard/settings">{t('userNav.settings')}</Link>
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout}>
-          Log out
+          {t('userNav.logout')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

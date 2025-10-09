@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -10,17 +11,18 @@ import { PlusCircle, CheckCircle2, PauseCircle, Star } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { useLanguage } from '@/context/language-context';
 
 function GoalCard({ goal }: { goal: Goal }) {
+  const { t } = useLanguage();
   const progress = (goal.savedAmount / goal.targetAmount) * 100;
   
   const getStatusChip = () => {
     switch(goal.status) {
-      case 'active': return <div className="flex items-center gap-1 text-sm text-green-600"><Star className="w-4 h-4 fill-current" /> Active</div>;
-      case 'completed': return <div className="flex items-center gap-1 text-sm text-blue-600"><CheckCircle2 className="w-4 h-4" /> Completed</div>;
-      case 'paused': return <div className="flex items-center gap-1 text-sm text-gray-500"><PauseCircle className="w-4 h-4" /> Paused</div>;
+      case 'active': return <div className="flex items-center gap-1 text-sm text-green-600"><Star className="w-4 h-4 fill-current" /> {t('goals.tabActive')}</div>;
+      case 'completed': return <div className="flex items-center gap-1 text-sm text-blue-600"><CheckCircle2 className="w-4 h-4" /> {t('goals.tabCompleted')}</div>;
+      case 'paused': return <div className="flex items-center gap-1 text-sm text-gray-500"><PauseCircle className="w-4 h-4" /> Paused</div>; // Assuming no translation for paused
       default: return null;
     }
   }
@@ -35,7 +37,7 @@ function GoalCard({ goal }: { goal: Goal }) {
         </div>
         <div className="flex-1">
           <CardTitle>{goal.name}</CardTitle>
-          <CardDescription>Target: PKR {goal.targetAmount.toLocaleString()}</CardDescription>
+          <CardDescription>{t('goals.goalTarget').replace('{amount}', goal.targetAmount.toLocaleString())}</CardDescription>
         </div>
         <div>
           {getStatusChip()}
@@ -44,7 +46,7 @@ function GoalCard({ goal }: { goal: Goal }) {
       <CardContent className="flex-grow">
         <div className="text-2xl font-bold">PKR {goal.savedAmount.toLocaleString()}</div>
         <p className="text-xs text-muted-foreground">
-          {Math.round(progress)}% of your goal
+          {t('goals.goalProgress').replace('{progress}', Math.round(progress).toString())}
         </p>
       </CardContent>
       <CardFooter>
@@ -56,48 +58,48 @@ function GoalCard({ goal }: { goal: Goal }) {
 
 export function GoalsList() {
     const [goals, setGoals] = useState<Goal[]>(goalsData);
+    const { t } = useLanguage();
 
     const activeGoals = goals.filter(g => g.status === 'active');
     const completedGoals = goals.filter(g => g.status === 'completed');
     const allGoals = goals;
 
-
     return (
         <div className="space-y-8">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold">Saving Goals</h1>
-                    <p className="text-muted-foreground">Define your targets and track your progress towards achieving them.</p>
+                    <h1 className="text-3xl font-bold">{t('goals.title')}</h1>
+                    <p className="text-muted-foreground">{t('goals.description')}</p>
                 </div>
                 <Dialog>
                     <DialogTrigger asChild>
                         <Button className="bg-accent text-accent-foreground hover:bg-accent/90">
-                            <PlusCircle className="mr-2 h-4 w-4" /> Add New Goal
+                            <PlusCircle className="me-2 h-4 w-4" /> {t('goals.addNew')}
                         </Button>
                     </DialogTrigger>
                     <DialogContent>
                         <DialogHeader>
-                            <DialogTitle>Create a New Goal</DialogTitle>
+                            <DialogTitle>{t('goals.createTitle')}</DialogTitle>
                             <DialogDescription>
-                                What are you saving for? Let's set it up.
+                                {t('goals.createDescription')}
                             </DialogDescription>
                         </DialogHeader>
                         <div className="grid gap-4 py-4">
                             <div className="grid gap-2">
-                                <Label htmlFor="name">Goal Name</Label>
-                                <Input id="name" placeholder="e.g., New Laptop" />
+                                <Label htmlFor="name">{t('goals.goalName')}</Label>
+                                <Input id="name" placeholder={t('goals.goalNamePlaceholder')} />
                             </div>
                              <div className="grid gap-2">
-                                <Label htmlFor="target">Target Amount (PKR)</Label>
-                                <Input id="target" type="number" placeholder="e.g., 150000" />
+                                <Label htmlFor="target">{t('goals.targetAmount')}</Label>
+                                <Input id="target" type="number" placeholder={t('goals.targetAmountPlaceholder')} />
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="end-date">Target Date (Optional)</Label>
+                                <Label htmlFor="end-date">{t('goals.targetDate')}</Label>
                                 <Input id="end-date" type="date" />
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button type="submit">Create Goal</Button>
+                            <Button type="submit">{t('goals.createButton')}</Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
@@ -105,9 +107,9 @@ export function GoalsList() {
             
             <Tabs defaultValue="active">
                 <TabsList>
-                    <TabsTrigger value="active">Active ({activeGoals.length})</TabsTrigger>
-                    <TabsTrigger value="completed">Completed ({completedGoals.length})</TabsTrigger>
-                    <TabsTrigger value="all">All ({allGoals.length})</TabsTrigger>
+                    <TabsTrigger value="active">{t('goals.tabActive')} ({activeGoals.length})</TabsTrigger>
+                    <TabsTrigger value="completed">{t('goals.tabCompleted')} ({completedGoals.length})</TabsTrigger>
+                    <TabsTrigger value="all">{t('goals.tabAll')} ({allGoals.length})</TabsTrigger>
                 </TabsList>
                 <TabsContent value="active" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
                     {activeGoals.map(goal => <GoalCard key={goal.id} goal={goal} />)}

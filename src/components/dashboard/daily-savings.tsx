@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -7,10 +8,12 @@ import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { dailySavingData } from '@/lib/data';
 import { Minus, Plus } from 'lucide-react';
+import { useLanguage } from '@/context/language-context';
 
 export function DailySavings() {
   const [dailyAmount, setDailyAmount] = useState(dailySavingData.dailyAmount);
   const [currentBalance, setCurrentBalance] = useState(dailySavingData.currentBalance);
+  const { t } = useLanguage();
 
   const monthlyGoal = dailyAmount * 30;
   const progress = (currentBalance / monthlyGoal) * 100;
@@ -22,36 +25,36 @@ export function DailySavings() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold">Daily Savings Tracker</h1>
-        <p className="text-muted-foreground">Log your daily savings and watch your balance grow.</p>
+        <h1 className="text-3xl font-bold">{t('dailySavings.title')}</h1>
+        <p className="text-muted-foreground">{t('dailySavings.description')}</p>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Your Savings Progress</CardTitle>
+            <CardTitle>{t('dailySavings.yourProgress')}</CardTitle>
             <CardDescription>
-              Based on your goal of saving PKR {dailyAmount.toLocaleString()} per day.
+              {t('dailySavings.basedOnGoal').replace('{amount}', dailyAmount.toLocaleString())}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="text-center space-y-2">
-              <p className="text-sm text-muted-foreground">Current Balance</p>
+              <p className="text-sm text-muted-foreground">{t('dailySavings.currentBalance')}</p>
               <p className="text-5xl font-bold tracking-tighter">
                 PKR {currentBalance.toLocaleString()}
               </p>
             </div>
             <div className="space-y-2">
                 <div className="flex justify-between text-sm text-muted-foreground">
-                    <span>This Month's Goal</span>
+                    <span>{t('dailySavings.monthlyGoal')}</span>
                     <span>PKR {monthlyGoal.toLocaleString()}</span>
                 </div>
                 <Progress value={progress} className="h-4" />
-                <p className="text-xs text-muted-foreground text-center pt-1">{Math.round(progress)}% of your monthly goal achieved.</p>
+                <p className="text-xs text-muted-foreground text-center pt-1">{t('dailySavings.progressAchieved').replace('{progress}', Math.round(progress).toString())}</p>
             </div>
           </CardContent>
           <CardFooter className="justify-center">
              <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={handleAddSaving}>
-                <Plus className="mr-2 h-5 w-5" /> Add Today's Saving (PKR {dailyAmount.toLocaleString()})
+                <Plus className="me-2 h-5 w-5" /> {t('dailySavings.addTodaySaving').replace('{amount}', dailyAmount.toLocaleString())}
             </Button>
           </CardFooter>
         </Card>
@@ -59,8 +62,8 @@ export function DailySavings() {
         <div className="space-y-8">
           <Card>
             <CardHeader>
-              <CardTitle>Adjust Daily Amount</CardTitle>
-              <CardDescription>Set how much you want to save each day.</CardDescription>
+              <CardTitle>{t('dailySavings.adjustAmount')}</CardTitle>
+              <CardDescription>{t('dailySavings.adjustAmountDescription')}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex items-center space-x-2">
@@ -81,11 +84,11 @@ export function DailySavings() {
           </Card>
            <Card className='bg-secondary'>
             <CardHeader>
-              <CardTitle>💡 Pro Tip</CardTitle>
+              <CardTitle>{t('dailySavings.proTip')}</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-secondary-foreground">
-                Consistency is key! Try to save a small amount every day. Even PKR 100 adds up to PKR 3,000 in a month.
+                {t('dailySavings.proTipContent')}
               </p>
             </CardContent>
           </Card>
