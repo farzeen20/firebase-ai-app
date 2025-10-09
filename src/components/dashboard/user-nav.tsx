@@ -50,7 +50,7 @@ export function UserNav() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem asChild>
+           <DropdownMenuItem asChild>
             <Link href="/dashboard/settings">Profile</Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
