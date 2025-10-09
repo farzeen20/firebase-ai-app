@@ -28,12 +28,10 @@ export default function DashboardLayout({
       </Sidebar>
       <SidebarInset className="flex flex-col">
         <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-4 md:px-6">
-          <SidebarTrigger asChild className="md:hidden">
-              <Button size="icon" variant="outline">
-                <PanelLeft />
-                <span className="sr-only">Toggle Menu</span>
-              </Button>
-            </SidebarTrigger>
+          <SidebarTrigger variant="outline" size="icon" className="md:hidden">
+            <PanelLeft />
+            <span className="sr-only">Toggle Menu</span>
+          </SidebarTrigger>
           <div className="flex-1">
              {/* Search bar or other header content can go here */}
           </div>
