@@ -43,16 +43,18 @@ function ArticleCard({ article, onToggleBookmark, onFeedback }: { article: Liter
       </Card>
       <DialogContent className="sm:max-w-[625px]">
         <DialogHeader>
-          <Badge variant="secondary" className="mb-2 w-fit">{article.category}</Badge>
           <DialogTitle className="text-2xl">{article.title}</DialogTitle>
-          <DialogDescription>
-            <div className="relative aspect-video my-4 rounded-lg overflow-hidden">
-                <Image src={article.imageUrl} alt={article.title} fill className="object-cover" data-ai-hint={article.imageHint} />
+          <DialogDescription asChild>
+            <div>
+              <Badge variant="secondary" className="my-2 w-fit">{article.category}</Badge>
+              <div className="relative aspect-video my-4 rounded-lg overflow-hidden">
+                  <Image src={article.imageUrl} alt={article.title} fill className="object-cover" data-ai-hint={article.imageHint} />
+              </div>
+              <p>
+                  This is the full content of the article. In a real application, this would be fetched from a database or CMS.
+                  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse lectus tortor, dignissim sit amet, adipiscing nec, ultricies sed, dolor. Cras elementum ultrices diam. Maecenas ligula massa, varius a, semper congue, euismod non, mi. Proin porttitor, orci nec nonummy molestie, enim est eleifend mi, non fermentum diam nisl sit amet erat. Duis semper. Duis arcu massa, scelerisque vitae, consequat in, pretium a, enim.
+              </p>
             </div>
-            <p>
-                This is the full content of the article. In a real application, this would be fetched from a database or CMS.
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse lectus tortor, dignissim sit amet, adipiscing nec, ultricies sed, dolor. Cras elementum ultrices diam. Maecenas ligula massa, varius a, semper congue, euismod non, mi. Proin porttitor, orci nec nonummy molestie, enim est eleifend mi, non fermentum diam nisl sit amet erat. Duis semper. Duis arcu massa, scelerisque vitae, consequat in, pretium a, enim.
-            </p>
           </DialogDescription>
         </DialogHeader>
         <div className="mt-4 flex items-center gap-4">
