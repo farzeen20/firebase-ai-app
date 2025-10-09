@@ -1,0 +1,38 @@
+{
+  "settings": {
+    "title": "ترتیبات",
+    "description": "اپنے اکاؤنٹ کی ترتیبات اور ترجیحات کا نظم کریں۔",
+    "tabs": {
+      "profile": "پروفائل",
+      "language": "زبان",
+      "security": "سیکیورٹی"
+    },
+    "profile": {
+      "title": "پروفائل کی معلومات",
+      "description": "اپنی ذاتی تفصیلات यहां اپ ڈیٹ کریں۔",
+      "firstName": "پہلا نام",
+      "lastName": "آخری نام",
+      "email": "ای میل",
+      "cnic": "شناختی کارڈ نمبر",
+      "phone": "فون نمبر",
+      "bankAccount": "بینک اکاؤنٹ (IBAN)",
+      "saveChanges": "تبدیلیاں محفوظ کریں"
+    },
+    "language": {
+      "title": "زبان اور علاقہ",
+      "description": "ایپ کا تجربہ करने کے لیے زبان منتخب کریں۔",
+      "appLanguage": "ایپ کی زبان",
+      "saveLanguage": "زبان محفوظ کریں"
+    },
+    "security": {
+      "title": "سیکیورٹی",
+      "description": "اپنے اکاؤنٹ کی سیکیورٹی ترتیبات کا نظم کریں۔",
+      "twoFactor": "دو عنصری توثیق (2FA)",
+      "twoFactorDescription": "اپنے اکاؤنٹ میں سیکیورٹی کی ایک اضافی تہہ شامل کریں۔",
+      "changePassword": "پاس ورڈ تبدیل کریں",
+      "currentPassword": "موجودہ پاس ورڈ",
+      "newPassword": "نیا پاس ورڈ",
+      "updatePassword": "پاس ورڈ اپ ڈیٹ کریں"
+    }
+  }
+}

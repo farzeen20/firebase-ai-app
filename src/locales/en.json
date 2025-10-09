@@ -1,0 +1,38 @@
+{
+  "settings": {
+    "title": "Settings",
+    "description": "Manage your account settings and preferences.",
+    "tabs": {
+      "profile": "Profile",
+      "language": "Language",
+      "security": "Security"
+    },
+    "profile": {
+      "title": "Profile Information",
+      "description": "Update your personal details here.",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "email": "Email",
+      "cnic": "CNIC",
+      "phone": "Phone Number",
+      "bankAccount": "Bank Account (IBAN)",
+      "saveChanges": "Save Changes"
+    },
+    "language": {
+      "title": "Language and Region",
+      "description": "Choose the language you want to experience the app in.",
+      "appLanguage": "App Language",
+      "saveLanguage": "Save Language"
+    },
+    "security": {
+      "title": "Security",
+      "description": "Manage your account's security settings.",
+      "twoFactor": "Two-Factor Authentication (2FA)",
+      "twoFactorDescription": "Add an extra layer of security to your account.",
+      "changePassword": "Change Password",
+      "currentPassword": "Current Password",
+      "newPassword": "New Password",
+      "updatePassword": "Update Password"
+    }
+  }
+}
