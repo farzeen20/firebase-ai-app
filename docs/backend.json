@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -31,9 +32,9 @@
           "description": "The user's email address.",
           "format": "email"
         },
-        "bankAccount": {
+        "bankAccountToken": {
           "type": "string",
-          "description": "Tokenized bank account details."
+          "description": "Tokenized bank account details. Raw data should not be stored."
         },
         "language": {
           "type": "array",
@@ -57,8 +58,7 @@
         "lastName",
         "cnic",
         "phone",
-        "email",
-        "bankAccount"
+        "email"
       ]
     },
     "UserProfile": {
@@ -87,9 +87,9 @@
           "type": "string",
           "description": "The user's location."
         },
-        "bankAccount": {
+        "bankAccountToken": {
           "type": "string",
-          "description": "The user's bank account information."
+          "description": "Tokenized bank account details. Raw data should not be stored."
         }
       },
       "required": [
@@ -97,8 +97,7 @@
         "name",
         "cnic",
         "phone",
-        "location",
-        "bankAccount"
+        "location"
       ]
     },
     "DailySaving": {
@@ -212,17 +211,18 @@
           "description": "Reference to User. (Relationship: User 1:N Group, Owner)"
         },
         "memberIds": {
-          "type": "array",
-          "description": "References to Users. (Relationship: Group N:N User, Members)",
-          "items": {
-            "type": "string"
+          "type": "object",
+          "description": "Map of user IDs who are members for efficient security rule checks.",
+          "additionalProperties": {
+            "type": "boolean"
           }
         }
       },
       "required": [
         "id",
         "name",
-        "ownerId"
+        "ownerId",
+        "memberIds"
       ]
     },
     "Contribution": {
@@ -822,4 +822,3 @@
     "reasoning": "The Firestore structure is designed to ensure authorization independence, clarity, and scalability, adhering to the specified principles. It leverages denormalization to avoid hierarchical authorization dependencies and structural segregation to maintain a homogeneous security posture within collections. Access modeling is consistently applied for user-owned and collaborative data. The design supports required QAPs through segregation and membership models. \n\n*   **Users and Profiles:** User data and profiles are stored under `/users/{userId}` and `/users/{userId}/profile` respectively, ensuring path-based ownership. The `profileId` is maintained in `/users/{userId}` to establish a 1:1 relationship. This setup allows secure access to user-specific information. The `users` collection stores core user information, while `userProfiles` stores profile details. The structure enables clear ownership and simplifies security rules based on `request.auth.uid`.\n*   **Daily Savings and Goals:** These are stored as subcollections under each user (`/users/{userId}/dailySavings` and `/users/{userId}/goals`). This enforces strict ownership and avoids the need for complex authorization logic.\n*   **Groups and Committees:** Groups are stored in the `/groups` collection. The `ownerId` field indicates the group creator. For collaborative access, a `members` map is added to each `group` document. The `Contribution` and `Payout` entities, representing group activities, are stored in subcollections under each group (`/groups/{groupId}/contributions` and `/groups/{groupId}/payouts`). This structure enables secure listing of group-related data. To ensure authorization independence, the `members` map from the parent `group` document is denormalized into each `Contribution` and `Payout` document.\n*   **Budgets and Bills:** Budget data is stored under `/users/{userId}/budgets`. Each budget can have multiple budget items, which are stored as subcollections under the corresponding budget (`/users/{userId}/budgets/{budgetId}/budgetItems`). Bills are also stored under the corresponding budget (`/users/{userId}/budgets/{budgetId}/bills`). This hierarchical structure allows clear ownership and simplifies security rules.\n*   **Financial Literacy Hub:** Literacy topics are stored in the `/literacyTopics` collection with public read access. User-specific interactions (bookmarks, difficulty ratings) are stored in the `/users/{userId}/userLiteracyTopics` collection to maintain ownership.\n*   **Family Mode:** Family data is stored in the `/families` collection, and each document contains lists of `parentIds`, `childIds`, and `sharedGoalIds`, creating relationships with users and goals. For authorization independence, consider denormalizing family-related information into user documents if needed for specific access patterns. Alternatively, consider implementing a membership map within families if specific access rules are required.\n*   **Notifications:** Each user's notifications are stored in the `/users/{userId}/notifications` collection. This allows efficient retrieval and management of notifications for each user. This structure ensures that only the user (or an admin) can read/write notifications to their respective node.\n\nThis structure effectively addresses the core design principles: it enforces authorization independence by denormalizing access control data, maintains clarity of intent with its hierarchical structure, avoids custom claims by relying solely on `request.auth.uid` for authorization, and supports secure `list` operations through structural segregation and membership maps."
   }
 }
-    

@@ -35,7 +35,7 @@ const registerSchema = z.object({
   lastName: z.string().min(1, 'Last name is required'),
   cnic: z.string().min(1, 'CNIC is required'),
   phone: z.string().min(1, 'Phone number is required'),
-  bankAccount: z.string().min(1, 'Bank account is required'),
+  bankAccountToken: z.string().min(1, 'Bank account is required'),
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
@@ -57,7 +57,7 @@ export function RegisterForm() {
       lastName: '',
       cnic: '',
       phone: '',
-      bankAccount: '',
+      bankAccountToken: '',
       email: '',
       password: '',
     },
@@ -82,7 +82,8 @@ export function RegisterForm() {
 
       if (user) {
         const userDocRef = doc(firestore, 'users', user.uid);
-        const { password, ...userData } = data;
+        // Do not store the password. The bankAccount is a token.
+        const { password, ...userData } = data; 
         setDocumentNonBlocking(userDocRef, { ...userData, id: user.uid }, { merge: true });
 
         if (typeof window !== 'undefined') {
@@ -169,7 +170,7 @@ export function RegisterForm() {
             </div>
             <FormField
               control={form.control}
-              name="bankAccount"
+              name="bankAccountToken"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>{t('register.bankAccountLabel')}</FormLabel>
