@@ -90,7 +90,7 @@ export function NotificationsView() {
                                                 {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
                                             </p>
                                         </div>
-                                        <p className={cn("mt-1", notification.read ? 'text-muted-foreground font-normal' : 'text-foreground font-semibold')}>
+                                        <p className={cn("mt-1 font-semibold text-foreground", notification.read ? 'font-normal text-muted-foreground' : 'font-bold' )}>
                                             {notification.message}
                                         </p>
                                     </div>
