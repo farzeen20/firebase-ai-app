@@ -8,6 +8,7 @@
     "budgetManager": "Budget Manager",
     "literacyHub": "Literacy Hub",
     "familyMode": "Family Mode",
+    "notifications": "Notifications",
     "settings": "Settings"
   },
   "settings": {
@@ -192,5 +193,14 @@
     "profile": "Profile",
     "settings": "Settings",
     "logout": "Log out"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "description": "All your alerts and reminders in one place.",
+    "markAllRead": "Mark all as read",
+    "deleteAll": "Delete all",
+    "allNotifications": "All Notifications",
+    "noNotificationsTitle": "All caught up!",
+    "noNotificationsDescription": "You don't have any new notifications."
   }
 }

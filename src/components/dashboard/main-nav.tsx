@@ -23,7 +23,8 @@ export function MainNav() {
     { href: '/dashboard/budget', label: t('nav.budgetManager'), icon: navLinks[4].icon },
     { href: '/dashboard/learn', label: t('nav.literacyHub'), icon: navLinks[5].icon },
     { href: '/dashboard/family', label: t('nav.familyMode'), icon: navLinks[6].icon },
-    { href: '/dashboard/settings', label: t('nav.settings'), icon: navLinks[7].icon },
+    { href: '/dashboard/notifications', label: t('nav.notifications'), icon: navLinks[7].icon },
+    { href: '/dashboard/settings', label: t('nav.settings'), icon: navLinks[8].icon },
   ]
 
 

@@ -1,5 +1,5 @@
-import type { Goal, DailySaving, FamilyMember, Committee, LiteracyArticle, BudgetItem } from './definitions';
-import { Target, Car, Home, GraduationCap, PiggyBank, Briefcase, HeartHandshake, Users, Wallet, BookOpen, SettingsIcon } from 'lucide-react';
+import type { Goal, DailySaving, FamilyMember, Committee, LiteracyArticle, BudgetItem, Notification } from './definitions';
+import { Target, Car, Home, GraduationCap, PiggyBank, Briefcase, HeartHandshake, Users, Wallet, BookOpen, SettingsIcon, Bell } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 export const user = {
@@ -17,6 +17,7 @@ export const navLinks = [
     { href: '/dashboard/budget', label: 'Budget Manager', icon: Wallet },
     { href: '/dashboard/learn', label: 'Literacy Hub', icon: BookOpen },
     { href: '/dashboard/family', label: 'Family Mode', icon: HeartHandshake },
+    { href: '/dashboard/notifications', label: 'Notifications', icon: Bell },
     { href: '/dashboard/settings', label: 'Settings', icon: SettingsIcon },
 ];
 
@@ -83,4 +84,11 @@ export const budgetItemsData: BudgetItem[] = [
     { name: 'Petrol', category: 'Transport', price: 3000 },
     { name: 'Phone Bill', category: 'Utilities', price: 1200 },
     { name: 'Movie Tickets', category: 'Entertainment', price: 2500 },
+];
+
+export const notificationsData: Notification[] = [
+    { id: 'n1', type: 'Goal Reached', message: 'Congratulations! You\'ve reached your goal "Buy a new car".', timestamp: '2024-07-20T10:00:00Z', read: false },
+    { id: 'n2', type: 'Committee Payout', message: 'Your payout of PKR 50,000 from "Neighborhood Savings" is scheduled for tomorrow.', timestamp: '2024-07-19T15:30:00Z', read: false },
+    { id: 'n3', type: 'Budget Alert', message: 'You have exceeded your "Entertainment" budget for this month by PKR 500.', timestamp: '2024-07-18T09:00:00Z', read: true },
+    { id: 'n4', type: 'New Article', message: 'A new article "Tips for Saving on Groceries" has been added to the Literacy Hub.', timestamp: '2024-07-17T12:00:00Z', read: true },
 ];

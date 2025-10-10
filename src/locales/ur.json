@@ -6,8 +6,9 @@
     "goals": "اہداف",
     "committees": "کمیٹیاں",
     "budgetManager": "بجٹ مینیجر",
-    "literacyHub": "مالیاتی خواندگی",
+    "literacyHub": "مالی خواندگی",
     "familyMode": "فیملی موڈ",
+    "notifications": "اطلاعات",
     "settings": "ترتیبات"
   },
   "settings": {
@@ -192,7 +193,15 @@
     "profile": "پروفائل",
     "settings": "ترتیبات",
     "logout": "لاگ آؤٹ"
+  },
+  "notifications": {
+    "title": "اطلاعات",
+    "description": "آپ کے تمام انتباہات اور یاد دہانیاں ایک جگہ پر۔",
+    "markAllRead": "سب کو پڑھا ہوا نشان زد کریں",
+    "deleteAll": "سبھی حذف کریں",
+    "allNotifications": "تمام اطلاعات",
+    "noNotificationsTitle": "سب کچھ تازہ ترین ہے!",
+    "noNotificationsDescription": "آپ کے پاس کوئی نئی اطلاع نہیں ہے۔"
   }
 }
-
   

@@ -50,3 +50,11 @@ export type BudgetItem = {
   category: string;
   price: number;
 };
+
+export type Notification = {
+    id: string;
+    type: 'Goal Reached' | 'Committee Payout' | 'Budget Alert' | 'New Article';
+    message: string;
+    timestamp: string;
+    read: boolean;
+};
