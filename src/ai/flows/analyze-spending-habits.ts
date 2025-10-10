@@ -60,7 +60,20 @@ const analyzeSpendingHabitsFlow = ai.defineFlow(
     outputSchema: AnalyzeSpendingHabitsOutputSchema,
   },
   async input => {
+    // Log the exact input being sent to the AI for debugging
     console.log('analyzeSpendingHabitsFlow received input:', JSON.stringify(input, null, 2));
+    
+    // Construct the prompt string for logging
+    let promptString = `You are a personal finance advisor for a user in Pakistan. Analyze the user's spending habits based on the following list of expenses from a single receipt and provide recommendations for staying within budget. Provide the analysis and recommendations in a friendly, encouraging, and actionable tone. The currency is Pakistani Rupees (PKR).
+
+Expenses:\n`;
+    input.expenses.forEach(expense => {
+      promptString += `- Item: ${expense.name}, Category: ${expense.category}, Price: PKR ${expense.price}\n`;
+    });
+    promptString += `\nPlease provide a concise analysis of spending patterns and 1-2 actionable recommendations.`;
+
+    console.log('Compiled prompt string sent to AI:\n', promptString);
+
     const {output} = await prompt(input);
     return output!;
   }

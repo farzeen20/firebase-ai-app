@@ -10,7 +10,6 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Upload, Bot, Lightbulb } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import type { BudgetItem } from '@/lib/definitions';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '../ui/skeleton';
 import { useLanguage } from '@/context/language-context';
@@ -47,7 +46,7 @@ export function BudgetManager() {
         if (!receiptImage) return;
 
         setIsCategorizing(true);
-        setIsAnalyzing(true);
+        setIsAnalyzing(false); // Only start analyzing after categorization
         setCategorizedItems([]);
         setAnalysisResult(null);
 
@@ -58,22 +57,27 @@ export function BudgetManager() {
             setCategorizedItems(items.budgetItems);
             setIsCategorizing(false);
 
-            // Step 2: Analyze spending habits
+            // Step 2: Analyze spending habits if items were found
             if (items.budgetItems.length > 0) {
+                setIsAnalyzing(true);
                 const analysis = await analyzeSpendingHabits({
-                    expenses: items.budgetItems,
+                    expenses: items.budgetItems.map(item => ({
+                        name: item.name,
+                        category: item.category,
+                        price: item.price
+                    })),
                     budgetId: 'temp-budget-id', // Using a temporary ID as per schema
                 });
                 setAnalysisResult(analysis);
+                setIsAnalyzing(false);
             }
         } catch (error: any) {
             console.error("AI analysis failed:", error);
             toast({
                 variant: "destructive",
                 title: "AI Analysis Failed",
-                description: error.message || "There was an issue analyzing your receipt. Please try again.",
+                description: error.message || "There was an issue analyzing your receipt. Please check the console for details and ensure your API key is set up correctly.",
             });
-        } finally {
             setIsCategorizing(false);
             setIsAnalyzing(false);
         }
@@ -115,7 +119,7 @@ export function BudgetManager() {
                     <CardFooter>
                         <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90" onClick={handleAnalyzeReceipt} disabled={!receiptImage || isLoading}>
                             <Bot className="me-2 h-4 w-4" />
-                            {isLoading ? t('budget.analyzing') : t('budget.analyzeButton')}
+                            {isCategorizing ? t('budget.analyzing') : isAnalyzing ? 'Generating Insights...' : t('budget.analyzeButton')}
                         </Button>
                     </CardFooter>
                 </Card>
@@ -162,7 +166,7 @@ export function BudgetManager() {
                         </CardContent>
                     </Card>
 
-                     {(isAnalyzing && !isCategorizing) && (
+                     {isAnalyzing && (
                         <Alert className="border-primary/50">
                             <Lightbulb className="h-4 w-4 text-primary" />
                             <AlertTitle className="text-primary font-bold">{t('budget.analysisTitle')}</AlertTitle>
