@@ -31,13 +31,10 @@ export function NotificationsView() {
     const getBadgeVariant = (type: Notification['type']): 'default' | 'secondary' | 'destructive' | 'outline' => {
         switch (type) {
             case 'Goal Reached':
-                return 'default';
             case 'Committee Payout':
-                return 'default';
             case 'Budget Alert':
-                return 'destructive';
             case 'New Article':
-                return 'secondary';
+                return 'destructive';
             default:
                 return 'secondary';
         }
@@ -78,7 +75,7 @@ export function NotificationsView() {
                                     key={notification.id} 
                                     className={cn(
                                         "flex items-start gap-4 p-4 rounded-lg border transition-colors cursor-pointer",
-                                        notification.read ? 'bg-background hover:bg-muted/50' : 'bg-card'
+                                        notification.read ? 'bg-background hover:bg-muted/50' : 'bg-secondary/50'
                                     )}
                                     onClick={() => toggleReadStatus(notification.id)}
                                 >
@@ -90,7 +87,7 @@ export function NotificationsView() {
                                                 {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
                                             </p>
                                         </div>
-                                        <p className={cn("mt-1 font-semibold text-foreground", notification.read ? 'font-normal text-muted-foreground' : 'font-bold' )}>
+                                        <p className={cn("mt-1 font-semibold", notification.read ? 'text-muted-foreground' : 'text-foreground' )}>
                                             {notification.message}
                                         </p>
                                     </div>
