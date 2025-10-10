@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -27,7 +28,7 @@ export function NotificationsView() {
         setNotifications([]);
     }
 
-    const getBadgeVariant = (type: Notification['type']): 'default' | 'secondary' | 'destructive' => {
+    const getBadgeVariant = (type: Notification['type']): 'default' | 'secondary' | 'destructive' | 'outline' => {
         switch (type) {
             case 'Goal Reached':
                 return 'default';
@@ -77,7 +78,7 @@ export function NotificationsView() {
                                     key={notification.id} 
                                     className={cn(
                                         "flex items-start gap-4 p-4 rounded-lg border transition-colors cursor-pointer",
-                                        notification.read ? 'bg-background text-muted-foreground' : 'bg-secondary'
+                                        notification.read ? 'bg-background hover:bg-muted/50' : 'bg-card'
                                     )}
                                     onClick={() => toggleReadStatus(notification.id)}
                                 >
@@ -89,7 +90,7 @@ export function NotificationsView() {
                                                 {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
                                             </p>
                                         </div>
-                                        <p className={cn("mt-1", notification.read ? 'font-normal' : 'font-semibold text-foreground')}>
+                                        <p className={cn("mt-1", notification.read ? 'text-muted-foreground font-normal' : 'text-foreground font-semibold')}>
                                             {notification.message}
                                         </p>
                                     </div>
