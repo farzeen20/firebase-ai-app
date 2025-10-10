@@ -5,6 +5,7 @@ import { BachatBuddyLogo } from '@/components/bachat-buddy-logo';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { PanelLeft } from 'lucide-react';
+import { NotificationPermissionManager } from '@/components/dashboard/notification-permission-manager';
 
 export default function DashboardLayout({
   children,
@@ -38,9 +39,12 @@ export default function DashboardLayout({
           <UserNav />
         </header>
         <main className="flex-1 flex flex-col gap-4 p-4 md:gap-8 md:p-8">
+          <NotificationPermissionManager />
           {children}
         </main>
       </SidebarInset>
     </SidebarProvider>
   );
 }
+
+    

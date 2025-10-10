@@ -4,6 +4,7 @@ import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore'
+import { getMessaging, isSupported } from 'firebase/messaging';
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
 export function initializeFirebase() {
@@ -33,12 +34,27 @@ export function initializeFirebase() {
 }
 
 export function getSdks(firebaseApp: FirebaseApp) {
-  return {
-    firebaseApp,
-    auth: getAuth(firebaseApp),
-    firestore: getFirestore(firebaseApp)
-  };
+    const firestore = getFirestore(firebaseApp);
+    const auth = getAuth(firebaseApp);
+    
+    // Conditionally initialize messaging only on the client side
+    let messaging = null;
+    if (typeof window !== 'undefined') {
+        isSupported().then(supported => {
+            if (supported) {
+                messaging = getMessaging(firebaseApp);
+            }
+        });
+    }
+
+    return {
+        firebaseApp,
+        auth,
+        firestore,
+        messaging,
+    };
 }
+
 
 export * from './provider';
 export * from './client-provider';
@@ -48,3 +64,5 @@ export * from './non-blocking-updates';
 export * from './non-blocking-login';
 export * from './errors';
 export * from './error-emitter';
+
+    
