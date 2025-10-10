@@ -14,37 +14,18 @@ import type { BudgetItem } from '@/lib/definitions';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '../ui/skeleton';
 import { useLanguage } from '@/context/language-context';
-
-// Mock AI functions
-const categorizeBudgetItems = async (receiptDataUri: string): Promise<BudgetItem[]> => {
-    console.log("AI: Categorizing items from receipt...");
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    console.log("AI: Done!");
-    return [
-        { name: 'Chicken Breast', category: 'Groceries', price: 850 },
-        { name: 'Basmati Rice 5kg', category: 'Groceries', price: 1600 },
-        { name: 'Shampoo', category: 'Toiletries', price: 550 },
-        { name: 'Movie Ticket', category: 'Entertainment', price: 1200 },
-        { name: 'Petrol', category: 'Transport', price: 2500 },
-    ];
-};
-
-const analyzeSpendingHabits = async (expenses: BudgetItem[]): Promise<{ analysis: string; recommendations: string; }> => {
-    console.log("AI: Analyzing spending habits...");
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    console.log("AI: Done!");
-    return {
-        analysis: "Your spending is highest in Transport and Groceries. Entertainment expenses are moderate but frequent.",
-        recommendations: "Consider carpooling or using public transport twice a week to reduce fuel costs. For groceries, buying in bulk and planning meals can lead to significant savings. Limit entertainment outings to a weekly budget.",
-    };
-};
+import { categorizeBudgetItems, type CategorizeBudgetItemsOutput } from '@/ai/flows/categorize-budget-items';
+import { analyzeSpendingHabits, type AnalyzeSpendingHabitsOutput } from '@/ai/flows/analyze-spending-habits';
+import { useToast } from '@/hooks/use-toast';
 
 export function BudgetManager() {
     const [receiptImage, setReceiptImage] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const [categorizedItems, setCategorizedItems] = useState<BudgetItem[]>([]);
-    const [analysisResult, setAnalysisResult] = useState<{ analysis: string; recommendations: string; } | null>(null);
+    const [isCategorizing, setIsCategorizing] = useState(false);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [categorizedItems, setCategorizedItems] = useState<CategorizeBudgetItemsOutput['budgetItems']>([]);
+    const [analysisResult, setAnalysisResult] = useState<AnalyzeSpendingHabitsOutput | null>(null);
     const { t } = useLanguage();
+    const { toast } = useToast();
     
     const receiptPlaceholder = PlaceHolderImages.find(p => p.id === 'receipt-scan');
 
@@ -65,14 +46,41 @@ export function BudgetManager() {
     const handleAnalyzeReceipt = async () => {
         if (!receiptImage) return;
 
-        setIsLoading(true);
-        const items = await categorizeBudgetItems(receiptImage);
-        setCategorizedItems(items);
-        const analysis = await analyzeSpendingHabits(items);
-        setAnalysisResult(analysis);
-        setIsLoading(false);
+        setIsCategorizing(true);
+        setIsAnalyzing(true);
+        setCategorizedItems([]);
+        setAnalysisResult(null);
+
+        try {
+            // Step 1: Categorize items
+            const budgetCategories = ['Groceries', 'Toiletries', 'Entertainment', 'Transport', 'Utilities', 'Other'];
+            const items = await categorizeBudgetItems({ receiptDataUri: receiptImage, budgetCategories });
+            setCategorizedItems(items.budgetItems);
+            setIsCategorizing(false);
+
+            // Step 2: Analyze spending habits
+            if (items.budgetItems.length > 0) {
+                const analysis = await analyzeSpendingHabits({
+                    expenses: items.budgetItems,
+                    budgetId: 'temp-budget-id', // Using a temporary ID as per schema
+                });
+                setAnalysisResult(analysis);
+            }
+        } catch (error: any) {
+            console.error("AI analysis failed:", error);
+            toast({
+                variant: "destructive",
+                title: "AI Analysis Failed",
+                description: error.message || "There was an issue analyzing your receipt. Please try again.",
+            });
+        } finally {
+            setIsCategorizing(false);
+            setIsAnalyzing(false);
+        }
     };
     
+    const isLoading = isCategorizing || isAnalyzing;
+
     return (
         <div className="space-y-8">
             <div>
@@ -128,21 +136,21 @@ export function BudgetManager() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {isLoading && Array.from({ length: 5 }).map((_, i) => (
+                                    {isCategorizing && Array.from({ length: 5 }).map((_, i) => (
                                         <TableRow key={i}>
                                             <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                                             <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                                             <TableCell className="text-right"><Skeleton className="h-4 w-16 ms-auto" /></TableCell>
                                         </TableRow>
                                     ))}
-                                    {!isLoading && categorizedItems.length === 0 && (
+                                    {!isCategorizing && categorizedItems.length === 0 && (
                                         <TableRow>
                                             <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">
                                                 {t('budget.uploadPrompt')}
                                             </TableCell>
                                         </TableRow>
                                     )}
-                                    {!isLoading && categorizedItems.map((item, index) => (
+                                    {!isCategorizing && categorizedItems.map((item, index) => (
                                         <TableRow key={index}>
                                             <TableCell className="font-medium">{item.name}</TableCell>
                                             <TableCell>{item.category}</TableCell>
@@ -153,6 +161,19 @@ export function BudgetManager() {
                             </Table>
                         </CardContent>
                     </Card>
+
+                     {(isAnalyzing && !isCategorizing) && (
+                        <Alert className="border-primary/50">
+                            <Lightbulb className="h-4 w-4 text-primary" />
+                            <AlertTitle className="text-primary font-bold">{t('budget.analysisTitle')}</AlertTitle>
+                            <AlertDescription>
+                                <div className="space-y-2">
+                                    <Skeleton className="h-4 w-full" />
+                                    <Skeleton className="h-4 w-2/3" />
+                                </div>
+                            </AlertDescription>
+                        </Alert>
+                    )}
 
                     {analysisResult && !isLoading && (
                          <Alert className="border-primary/50">
