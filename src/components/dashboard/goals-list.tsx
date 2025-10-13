@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { goalsData } from '@/lib/data';
 import type { Goal } from '@/lib/definitions';
-import { PlusCircle, CheckCircle2, PauseCircle, Star } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
+import { PlusCircle, CheckCircle2, PauseCircle, Star, PiggyBank } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -58,7 +58,36 @@ function GoalCard({ goal }: { goal: Goal }) {
 
 export function GoalsList() {
     const [goals, setGoals] = useState<Goal[]>(goalsData);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [newGoalName, setNewGoalName] = useState('');
+    const [newGoalTarget, setNewGoalTarget] = useState('');
+    const [newGoalDate, setNewGoalDate] = useState('');
     const { t } = useLanguage();
+
+    const handleAddGoal = () => {
+        if (!newGoalName || !newGoalTarget) return;
+
+        const newGoal: Goal = {
+            id: (goals.length + 1).toString(),
+            name: newGoalName,
+            targetAmount: parseFloat(newGoalTarget),
+            savedAmount: 0,
+            startDate: new Date().toISOString(),
+            endDate: newGoalDate || undefined,
+            status: 'active',
+            icon: PiggyBank,
+        };
+
+        setGoals(prevGoals => [newGoal, ...prevGoals]);
+        
+        // Reset form and close dialog
+        setNewGoalName('');
+        setNewGoalTarget('');
+        setNewGoalDate('');
+        setIsDialogOpen(false);
+    };
+
+    const isFormValid = newGoalName.trim() !== '' && newGoalTarget.trim() !== '';
 
     const activeGoals = goals.filter(g => g.status === 'active');
     const completedGoals = goals.filter(g => g.status === 'completed');
@@ -71,7 +100,7 @@ export function GoalsList() {
                     <h1 className="text-3xl font-bold">{t('goals.title')}</h1>
                     <p className="text-muted-foreground">{t('goals.description')}</p>
                 </div>
-                <Dialog>
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                     <DialogTrigger asChild>
                         <Button className="bg-accent text-accent-foreground hover:bg-accent/90">
                             <PlusCircle className="me-2 h-4 w-4" /> {t('goals.addNew')}
@@ -87,19 +116,40 @@ export function GoalsList() {
                         <div className="grid gap-4 py-4">
                             <div className="grid gap-2">
                                 <Label htmlFor="name">{t('goals.goalName')}</Label>
-                                <Input id="name" placeholder={t('goals.goalNamePlaceholder')} />
+                                <Input 
+                                    id="name" 
+                                    placeholder={t('goals.goalNamePlaceholder')} 
+                                    value={newGoalName}
+                                    onChange={(e) => setNewGoalName(e.target.value)}
+                                />
                             </div>
                              <div className="grid gap-2">
                                 <Label htmlFor="target">{t('goals.targetAmount')}</Label>
-                                <Input id="target" type="number" placeholder={t('goals.targetAmountPlaceholder')} />
+                                <Input 
+                                    id="target" 
+                                    type="number" 
+                                    placeholder={t('goals.targetAmountPlaceholder')} 
+                                    value={newGoalTarget}
+                                    onChange={(e) => setNewGoalTarget(e.target.value)}
+                                />
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="end-date">{t('goals.targetDate')}</Label>
-                                <Input id="end-date" type="date" />
+                                <Input 
+                                    id="end-date" 
+                                    type="date"
+                                    value={newGoalDate}
+                                    onChange={(e) => setNewGoalDate(e.target.value)}
+                                />
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button type="submit">{t('goals.createButton')}</Button>
+                            <DialogClose asChild>
+                                <Button variant="outline">Cancel</Button>
+                            </DialogClose>
+                            <Button onClick={handleAddGoal} disabled={!isFormValid}>
+                                {t('goals.createButton')}
+                            </Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
