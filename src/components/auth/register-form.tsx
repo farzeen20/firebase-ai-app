@@ -35,7 +35,6 @@ const registerSchema = z.object({
   lastName: z.string().min(1, 'Last name is required'),
   cnic: z.string().min(1, 'CNIC is required'),
   phone: z.string().min(1, 'Phone number is required'),
-  bankAccountToken: z.string().min(1, 'Bank account is required'),
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
@@ -57,7 +56,6 @@ export function RegisterForm() {
       lastName: '',
       cnic: '',
       phone: '',
-      bankAccountToken: '',
       email: '',
       password: '',
     },
@@ -168,19 +166,6 @@ export function RegisterForm() {
                 )}
               />
             </div>
-            <FormField
-              control={form.control}
-              name="bankAccountToken"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('register.bankAccountLabel')}</FormLabel>
-                  <FormControl>
-                    <Input placeholder={t('register.bankAccountPlaceholder')} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             <FormField
               control={form.control}
               name="email"
