@@ -12,13 +12,12 @@ import { useLanguage } from '@/context/language-context';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useUser, useFirestore, useMemoFirebase, useDoc, setDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, useMemoFirebase, useDoc, setDocumentNonBlocking, useAuth, RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from '@/firebase';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { doc } from 'firebase/firestore';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { sendEmail } from '@/ai/flows/send-email';
 
 const profileSchema = z.object({
     firstName: z.string().min(1, 'First name is required'),
@@ -40,11 +39,13 @@ export function SettingsView() {
     ];
     const { toast } = useToast();
     const { user } = useUser();
+    const auth = useAuth();
     const firestore = useFirestore();
     const [is2faDialogOpen, setIs2faDialogOpen] = useState(false);
     const [verificationCode, setVerificationCode] = useState('');
     const [isCodeSent, setIsCodeSent] = useState(false);
-    const [sentCode, setSentCode] = useState('');
+    const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+    const recaptchaContainerRef = useRef<HTMLDivElement>(null);
 
 
     const userDocRef = useMemoFirebase(() => {
@@ -92,14 +93,29 @@ export function SettingsView() {
         });
     };
     
+    const setupRecaptcha = () => {
+        if (!auth || !recaptchaContainerRef.current) return;
+        if ((window as any).recaptchaVerifier) {
+            (window as any).recaptchaVerifier.clear();
+        }
+        
+        (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, recaptchaContainerRef.current, {
+            'size': 'invisible',
+            'callback': (response: any) => {
+                // reCAPTCHA solved, allow signInWithPhoneNumber.
+            }
+        });
+    };
+
     const handle2faToggle = (enabled: boolean) => {
         if (enabled) {
-            // User wants to enable 2FA, show email verification dialog
             setIsCodeSent(false);
             setVerificationCode('');
+            setConfirmationResult(null);
             setIs2faDialogOpen(true);
+            // We need to ensure reCAPTCHA is set up when the dialog opens
+            setTimeout(setupRecaptcha, 100); 
         } else {
-            // User wants to disable 2FA
              if (!userDocRef) return;
             setDocumentNonBlocking(userDocRef, { twoFAEnabled: false }, { merge: true });
             form.setValue('twoFAEnabled', false);
@@ -111,43 +127,50 @@ export function SettingsView() {
     };
     
     const handleSendVerificationCode = async () => {
-        if (!user?.email) {
+        const phoneNumber = form.getValues('phone');
+        if (!phoneNumber || !auth) {
             toast({
                 variant: 'destructive',
                 title: 'Error',
-                description: 'User email not found.',
+                description: 'User phone number not found.',
             });
             return;
         }
 
-        const code = Math.floor(100000 + Math.random() * 900000).toString();
-        setSentCode(code);
-    
+        const appVerifier = (window as any).recaptchaVerifier;
+
         try {
-            await sendEmail({
-                to: user.email,
-                subject: 'Your Bachat Buddy 2FA Code',
-                body: `Your verification code is: <strong>${code}</strong>`
-            });
-    
+            const result = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+            setConfirmationResult(result);
             setIsCodeSent(true);
             toast({
                 title: 'Code Sent!',
-                description: `A verification code has been sent to ${user.email}.`,
+                description: `A verification code has been sent to ${phoneNumber}.`,
             });
         } catch (error) {
-            console.error('Failed to send verification email:', error);
+            console.error('Failed to send SMS:', error);
             toast({
                 variant: 'destructive',
                 title: 'Failed to Send Code',
-                description: 'There was a problem sending the verification email. Please try again.',
+                description: 'There was a problem sending the verification SMS. Please try again.',
             });
+            // Reset reCAPTCHA so user can try again
+            setupRecaptcha();
         }
     };
     
     
-    const handleVerify2fa = () => {
-        if (verificationCode === sentCode) {
+    const handleVerify2fa = async () => {
+        if (!confirmationResult || !verificationCode) {
+            toast({
+                variant: 'destructive',
+                title: 'Verification Error',
+                description: 'Please enter the verification code.',
+            });
+            return;
+        }
+        try {
+            await confirmationResult.confirm(verificationCode);
             if (!userDocRef) return;
             setDocumentNonBlocking(userDocRef, { twoFAEnabled: true }, { merge: true });
             form.setValue('twoFAEnabled', true);
@@ -156,7 +179,7 @@ export function SettingsView() {
                 description: 'Two-factor authentication has been successfully set up.',
             });
             setIs2faDialogOpen(false);
-        } else {
+        } catch (error) {
             toast({
                 variant: 'destructive',
                 title: 'Invalid Code',
@@ -168,6 +191,7 @@ export function SettingsView() {
 
     return (
         <div className="space-y-8">
+            <div ref={recaptchaContainerRef}></div>
             <div>
                 <h1 className="text-3xl font-bold">{t('settings.title')}</h1>
                 <p className="text-muted-foreground">{t('settings.description')}</p>
@@ -342,7 +366,7 @@ export function SettingsView() {
                     <DialogHeader>
                         <DialogTitle>Enable Two-Factor Authentication</DialogTitle>
                         <DialogDescription>
-                            We will send a verification code to your email address ({user?.email}). Enter the code below to enable 2FA.
+                            We will send a verification code to your phone number ({form.getValues('phone')}). Enter the code below to enable 2FA.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="py-4 space-y-4">
@@ -373,3 +397,5 @@ export function SettingsView() {
     );
 
 }
+
+    
