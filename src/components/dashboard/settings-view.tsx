@@ -45,6 +45,7 @@ export function SettingsView() {
     const [isCodeSent, setIsCodeSent] = useState(false);
     const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
     const recaptchaContainerRef = useRef<HTMLDivElement>(null);
+    const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
 
 
     const userDocRef = useMemo(() => {
@@ -71,6 +72,15 @@ export function SettingsView() {
             form.reset(userData);
         }
     }, [userData, form]);
+    
+    useEffect(() => {
+        if (auth && !recaptchaVerifierRef.current) {
+            recaptchaVerifierRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', {
+                'size': 'invisible',
+            });
+        }
+    }, [auth]);
+
 
     const onProfileSubmit = (data: ProfileFormValues) => {
         if (!userDocRef) {
@@ -92,20 +102,6 @@ export function SettingsView() {
         });
     };
     
-    const setupRecaptcha = () => {
-        if (!auth || !recaptchaContainerRef.current) return;
-        if ((window as any).recaptchaVerifier) {
-            (window as any).recaptchaVerifier.clear();
-        }
-        
-        (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, recaptchaContainerRef.current, {
-            'size': 'invisible',
-            'callback': (response: any) => {
-                // reCAPTCHA solved, allow signInWithPhoneNumber.
-            }
-        });
-    };
-
     const handle2faToggle = (enabled: boolean) => {
         if (enabled) {
             setIsCodeSent(false);
@@ -125,18 +121,16 @@ export function SettingsView() {
     
     const handleSendVerificationCode = async () => {
         const phoneNumber = form.getValues('phone');
-        if (!phoneNumber || !auth) {
+        if (!phoneNumber || !auth || !recaptchaVerifierRef.current) {
             toast({
                 variant: 'destructive',
                 title: 'Error',
-                description: 'User phone number not found.',
+                description: 'User phone number not found or reCAPTCHA not ready.',
             });
             return;
         }
 
-        // Setup reCAPTCHA on demand
-        setupRecaptcha();
-        const appVerifier = (window as any).recaptchaVerifier;
+        const appVerifier = recaptchaVerifierRef.current;
 
         try {
             const result = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
@@ -146,19 +140,19 @@ export function SettingsView() {
                 title: 'Code Sent!',
                 description: `A verification code has been sent to ${phoneNumber}.`,
             });
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to send SMS:', error);
             toast({
                 variant: 'destructive',
                 title: 'Failed to Send Code',
-                description: 'There was a problem sending the verification SMS. Please try again.',
+                description: error.message || 'There was a problem sending the verification SMS. Please try again.',
             });
-            // Reset reCAPTCHA so user can try again
-            if ((window as any).recaptchaVerifier) {
-                (window as any).recaptchaVerifier.render().then((widgetId: any) => {
+            // Reset reCAPTCHA for the user to try again
+            recaptchaVerifierRef.current.render().then((widgetId) => {
+                if (typeof (window as any).grecaptcha !== 'undefined') {
                     (window as any).grecaptcha.reset(widgetId);
-                });
-            }
+                }
+            });
         }
     };
     
@@ -182,11 +176,11 @@ export function SettingsView() {
                 description: 'Two-factor authentication has been successfully set up.',
             });
             setIs2faDialogOpen(false);
-        } catch (error) {
+        } catch (error: any) {
             toast({
                 variant: 'destructive',
                 title: 'Invalid Code',
-                description: 'The verification code is incorrect. Please try again.',
+                description: error.message || 'The verification code is incorrect. Please try again.',
             });
         }
     };
@@ -194,7 +188,7 @@ export function SettingsView() {
 
     return (
         <div className="space-y-8">
-            <div ref={recaptchaContainerRef}></div>
+            <div id="recaptcha-container" ref={recaptchaContainerRef}></div>
             <div>
                 <h1 className="text-3xl font-bold">{t('settings.title')}</h1>
                 <p className="text-muted-foreground">{t('settings.description')}</p>
@@ -400,7 +394,5 @@ export function SettingsView() {
     );
 
 }
-
-    
 
     
