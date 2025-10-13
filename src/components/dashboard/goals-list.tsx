@@ -7,14 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { goalsData } from '@/lib/data';
 import type { Goal } from '@/lib/definitions';
-import { PlusCircle, CheckCircle2, PauseCircle, Star, PiggyBank } from 'lucide-react';
+import { PlusCircle, CheckCircle2, PauseCircle, Star, PiggyBank, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useLanguage } from '@/context/language-context';
 
-function GoalCard({ goal }: { goal: Goal }) {
+function GoalCard({ goal, onDelete }: { goal: Goal; onDelete: (id: string) => void; }) {
   const { t } = useLanguage();
   const progress = (goal.savedAmount / goal.targetAmount) * 100;
   
@@ -39,19 +39,21 @@ function GoalCard({ goal }: { goal: Goal }) {
           <CardTitle>{goal.name}</CardTitle>
           <CardDescription>{t('goals.goalTarget').replace('{amount}', goal.targetAmount.toLocaleString())}</CardDescription>
         </div>
-        <div>
+        <div className="flex flex-col items-end gap-2">
           {getStatusChip()}
+          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onDelete(goal.id)}>
+              <Trash2 className="h-4 w-4 text-destructive" />
+              <span className="sr-only">Delete Goal</span>
+          </Button>
         </div>
       </CardHeader>
       <CardContent className="flex-grow">
-        
         <p className="text-xs text-muted-foreground">
-          PKR {goal.savedAmount.toLocaleString()} saved so far
+          {Math.round(progress)}% of your goal
         </p>
       </CardContent>
-      <CardFooter className="flex items-center gap-4">
+      <CardFooter>
         <Progress value={progress} className="h-2 flex-1" />
-        <span className="text-xs font-semibold text-muted-foreground">{Math.round(progress)}%</span>
       </CardFooter>
     </Card>
   );
@@ -86,6 +88,10 @@ export function GoalsList() {
         setNewGoalTarget('');
         setNewGoalDate('');
         setIsDialogOpen(false);
+    };
+
+    const handleDeleteGoal = (id: string) => {
+        setGoals(prevGoals => prevGoals.filter(goal => goal.id !== id));
     };
 
     const isFormValid = newGoalName.trim() !== '' && newGoalTarget.trim() !== '';
@@ -163,13 +169,13 @@ export function GoalsList() {
                     <TabsTrigger value="all">{t('goals.tabAll')} ({allGoals.length})</TabsTrigger>
                 </TabsList>
                 <TabsContent value="active" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
-                    {activeGoals.map(goal => <GoalCard key={goal.id} goal={goal} />)}
+                    {activeGoals.map(goal => <GoalCard key={goal.id} goal={goal} onDelete={handleDeleteGoal} />)}
                 </TabsContent>
                 <TabsContent value="completed" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
-                    {completedGoals.map(goal => <GoalCard key={goal.id} goal={goal} />)}
+                    {completedGoals.map(goal => <GoalCard key={goal.id} goal={goal} onDelete={handleDeleteGoal} />)}
                 </TabsContent>
                 <TabsContent value="all" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
-                    {allGoals.map(goal => <GoalCard key={goal.id} goal={goal} />)}
+                    {allGoals.map(goal => <GoalCard key={goal.id} goal={goal} onDelete={handleDeleteGoal} />)}
                 </TabsContent>
             </Tabs>
         </div>
