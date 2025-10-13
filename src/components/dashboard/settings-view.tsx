@@ -23,6 +23,7 @@ const profileSchema = z.object({
     lastName: z.string().min(1, 'Last name is required'),
     email: z.string().email('Invalid email address'),
     phone: z.string().min(1, 'Phone number is required'),
+    cnic: z.string().min(1, 'CNIC is required'),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -51,6 +52,7 @@ export function SettingsView() {
             lastName: '',
             email: '',
             phone: '',
+            cnic: '',
         },
     });
 
@@ -142,10 +144,19 @@ export function SettingsView() {
                                         )}
                                     />
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="cnic">{t('settings.profile.cnic')}</Label>
-                                            <Input id="cnic" value={userData ? (userData as any).cnic : ''} disabled />
-                                        </div>
+                                        <FormField
+                                            control={form.control}
+                                            name="cnic"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>{t('settings.profile.cnic')}</FormLabel>
+                                                    <FormControl>
+                                                        <Input {...field} disabled={isLoading} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
                                          <FormField
                                             control={form.control}
                                             name="phone"
