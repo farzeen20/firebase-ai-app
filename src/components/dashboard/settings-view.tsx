@@ -18,8 +18,6 @@ import { useToast } from '@/hooks/use-toast';
 import { doc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import * as twofa from 'node-2fa';
-import Image from 'next/image';
 
 const profileSchema = z.object({
     firstName: z.string().min(1, 'First name is required'),
@@ -43,8 +41,8 @@ export function SettingsView() {
     const { user } = useUser();
     const firestore = useFirestore();
     const [is2faDialogOpen, setIs2faDialogOpen] = useState(false);
-    const [twoFaConfig, setTwoFaConfig] = useState<{ qr: string, secret: string } | null>(null);
     const [verificationCode, setVerificationCode] = useState('');
+    const [isCodeSent, setIsCodeSent] = useState(false);
 
     const userDocRef = useMemoFirebase(() => {
         if (!firestore || !user?.uid) return null;
@@ -94,14 +92,14 @@ export function SettingsView() {
     
     const handle2faToggle = (enabled: boolean) => {
         if (enabled) {
-            // User wants to enable 2FA, generate secret and show dialog
-            const newSecret = twofa.generateSecret({ name: 'Bachat Buddy', account: user?.email ?? 'user' });
-            setTwoFaConfig(newSecret);
+            // User wants to enable 2FA, show email verification dialog
+            setIsCodeSent(false);
+            setVerificationCode('');
             setIs2faDialogOpen(true);
         } else {
             // User wants to disable 2FA
              if (!userDocRef) return;
-            setDocumentNonBlocking(userDocRef, { twoFAEnabled: false, twoFASecret: '' }, { merge: true });
+            setDocumentNonBlocking(userDocRef, { twoFAEnabled: false }, { merge: true });
             form.setValue('twoFAEnabled', false);
             toast({
                 title: '2FA Disabled',
@@ -110,27 +108,33 @@ export function SettingsView() {
         }
     };
     
+    const handleSendVerificationCode = () => {
+        // In a real app, this would trigger a backend service to send an email.
+        // For this prototype, we'll just simulate it.
+        setIsCodeSent(true);
+        toast({
+            title: 'Code Sent!',
+            description: `A verification code has been sent to ${user?.email}.`,
+        });
+    };
+    
     const handleVerify2fa = () => {
-        if (!twoFaConfig || !verificationCode) return;
-        
-        const delta = twofa.verifyToken(twoFaConfig.secret, verificationCode);
-        
-        if (delta !== null && delta.delta === 0) {
+        // In a real app, this would verify the code against a stored value.
+        // For this prototype, any 6-digit code is accepted.
+        if (verificationCode.length === 6 && /^\d+$/.test(verificationCode)) {
             if (!userDocRef) return;
-            setDocumentNonBlocking(userDocRef, { twoFAEnabled: true, twoFASecret: twoFaConfig.secret }, { merge: true });
+            setDocumentNonBlocking(userDocRef, { twoFAEnabled: true }, { merge: true });
             form.setValue('twoFAEnabled', true);
             toast({
                 title: '2FA Enabled!',
                 description: 'Two-factor authentication has been successfully set up.',
             });
             setIs2faDialogOpen(false);
-            setTwoFaConfig(null);
-            setVerificationCode('');
         } else {
             toast({
                 variant: 'destructive',
                 title: 'Invalid Code',
-                description: 'The verification code is incorrect. Please try again.',
+                description: 'Please enter a valid 6-digit verification code.',
             });
         }
     };
@@ -281,8 +285,12 @@ export function SettingsView() {
                                         <Switch
                                             checked={field.value}
                                             onCheckedChange={(checked) => {
-                                                field.onChange(checked);
-                                                handle2faToggle(checked);
+                                                // Prevent unchecking directly from UI if it's already enabled
+                                                if (field.value && !checked) {
+                                                    handle2faToggle(false);
+                                                } else if (!field.value && checked) {
+                                                    handle2faToggle(true);
+                                                }
                                             }}
                                             disabled={isLoading}
                                         />
@@ -308,32 +316,29 @@ export function SettingsView() {
                     <DialogHeader>
                         <DialogTitle>Enable Two-Factor Authentication</DialogTitle>
                         <DialogDescription>
-                            Scan the QR code with your authenticator app (e.g., Google Authenticator) and enter the code to verify.
+                            We will send a verification code to your email address ({user?.email}). Enter the code below to enable 2FA.
                         </DialogDescription>
                     </DialogHeader>
-                    {twoFaConfig && (
-                        <div className="flex flex-col items-center gap-4 py-4">
-                            <div className="relative w-48 h-48">
-                                <Image src={twoFaConfig.qr} alt="2FA QR Code" fill className="object-contain" />
-                            </div>
-                            <p className="text-sm text-muted-foreground">Or enter this key manually:</p>
-                            <p className="font-mono bg-secondary p-2 rounded-md">{twoFaConfig.secret}</p>
-                            <div className="grid w-full max-w-sm items-center gap-1.5">
-                                <Label htmlFor="verification-code">Verification Code</Label>
-                                <Input 
-                                    id="verification-code" 
-                                    placeholder="Enter 6-digit code"
-                                    value={verificationCode}
-                                    onChange={(e) => setVerificationCode(e.target.value)} 
-                                />
-                            </div>
+                    <div className="py-4 space-y-4">
+                        <div className="grid w-full items-center gap-1.5">
+                            <Label htmlFor="verification-code">Verification Code</Label>
+                            <Input 
+                                id="verification-code" 
+                                placeholder="Enter 6-digit code"
+                                value={verificationCode}
+                                onChange={(e) => setVerificationCode(e.target.value)}
+                                disabled={!isCodeSent}
+                            />
                         </div>
-                    )}
+                         <Button onClick={handleSendVerificationCode} className="w-full" disabled={isCodeSent}>
+                            {isCodeSent ? 'Code Sent' : 'Send Verification Code'}
+                        </Button>
+                    </div>
                     <DialogFooter>
                         <DialogClose asChild>
                             <Button variant="outline">Cancel</Button>
                         </DialogClose>
-                        <Button onClick={handleVerify2fa} disabled={!verificationCode}>Verify & Enable</Button>
+                        <Button onClick={handleVerify2fa} disabled={!verificationCode || !isCodeSent}>Verify & Enable</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -341,4 +346,4 @@ export function SettingsView() {
         </div>
     );
 
-    
+}
