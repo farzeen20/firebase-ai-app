@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,6 +9,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLanguage } from '@/context/language-context';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { useUser, useFirestore, useMemoFirebase, useDoc, setDocumentNonBlocking } from '@/firebase';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { useToast } from '@/hooks/use-toast';
+import { doc } from 'firebase/firestore';
+import { useEffect } from 'react';
+
+const profileSchema = z.object({
+    firstName: z.string().min(1, 'First name is required'),
+    lastName: z.string().min(1, 'Last name is required'),
+    email: z.string().email('Invalid email address'),
+    phone: z.string().min(1, 'Phone number is required'),
+});
+
+type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export function SettingsView() {
     const { language, setLanguage, t } = useLanguage();
@@ -15,6 +33,50 @@ export function SettingsView() {
         { value: 'en', label: 'English' },
         { value: 'ur', label: 'Urdu' }
     ];
+    const { toast } = useToast();
+    const { user } = useUser();
+    const firestore = useFirestore();
+
+    const userDocRef = useMemoFirebase(() => {
+        if (!firestore || !user?.uid) return null;
+        return doc(firestore, 'users', user.uid);
+    }, [firestore, user?.uid]);
+
+    const { data: userData, isLoading } = useDoc<ProfileFormValues>(userDocRef);
+
+    const form = useForm<ProfileFormValues>({
+        resolver: zodResolver(profileSchema),
+        defaultValues: {
+            firstName: '',
+            lastName: '',
+            email: '',
+            phone: '',
+        },
+    });
+
+    useEffect(() => {
+        if (userData) {
+            form.reset(userData);
+        }
+    }, [userData, form]);
+
+    const onProfileSubmit = (data: ProfileFormValues) => {
+        if (!userDocRef) {
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'User not found.',
+            });
+            return;
+        }
+
+        setDocumentNonBlocking(userDocRef, data, { merge: true });
+
+        toast({
+            title: 'Profile Updated',
+            description: 'Your profile information has been successfully saved.',
+        });
+    };
 
     return (
         <div className="space-y-8">
@@ -35,36 +97,74 @@ export function SettingsView() {
                             <CardTitle>{t('settings.profile.title')}</CardTitle>
                             <CardDescription>{t('settings.profile.description')}</CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="first-name">{t('settings.profile.firstName')}</Label>
-                                    <Input id="first-name" defaultValue="Ayesha" />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="last-name">{t('settings.profile.lastName')}</Label>
-                                    <Input id="last-name" defaultValue="Khan" />
-                                </div>
-                            </div>
-                             <div className="space-y-2">
-                                <Label htmlFor="email">{t('settings.profile.email')}</Label>
-                                <Input id="email" type="email" defaultValue="ayesha.khan@example.com" />
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="cnic">{t('settings.profile.cnic')}</Label>
-                                    <Input id="cnic" defaultValue="XXXXX-XXXXXXX-X" disabled />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="phone">{t('settings.profile.phone')}</Label>
-                                    <Input id="phone" defaultValue="+92 3XX XXXXXXX" />
-                                </div>
-                            </div>
-                             <div className="space-y-2">
-                                <Label htmlFor="bank-account">{t('settings.profile.bankAccount')}</Label>
-                                <Input id="bank-account" defaultValue="PKXX XXXX ... XXXX" disabled />
-                            </div>
-                            <Button className="bg-accent text-accent-foreground hover:bg-accent/90">{t('settings.profile.saveChanges')}</Button>
+                        <CardContent>
+                            <Form {...form}>
+                                <form onSubmit={form.handleSubmit(onProfileSubmit)} className="space-y-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="firstName"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>{t('settings.profile.firstName')}</FormLabel>
+                                                    <FormControl>
+                                                        <Input {...field} disabled={isLoading} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="lastName"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>{t('settings.profile.lastName')}</FormLabel>
+                                                    <FormControl>
+                                                        <Input {...field} disabled={isLoading} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                    <FormField
+                                        control={form.control}
+                                        name="email"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>{t('settings.profile.email')}</FormLabel>
+                                                <FormControl>
+                                                    <Input type="email" {...field} disabled={isLoading} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="cnic">{t('settings.profile.cnic')}</Label>
+                                            <Input id="cnic" value={userData ? (userData as any).cnic : ''} disabled />
+                                        </div>
+                                         <FormField
+                                            control={form.control}
+                                            name="phone"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>{t('settings.profile.phone')}</FormLabel>
+                                                    <FormControl>
+                                                        <Input {...field} disabled={isLoading} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                    <Button type="submit" className="bg-accent text-accent-foreground hover:bg-accent/90" disabled={form.formState.isSubmitting || isLoading}>
+                                        {form.formState.isSubmitting ? 'Saving...' : t('settings.profile.saveChanges')}
+                                    </Button>
+                                </form>
+                            </Form>
                         </CardContent>
                     </Card>
                 </TabsContent>
