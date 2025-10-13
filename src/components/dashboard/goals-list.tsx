@@ -44,13 +44,14 @@ function GoalCard({ goal }: { goal: Goal }) {
         </div>
       </CardHeader>
       <CardContent className="flex-grow">
-        <div className="text-2xl font-bold">PKR {goal.savedAmount.toLocaleString()}</div>
+        
         <p className="text-xs text-muted-foreground">
-          {t('goals.goalProgress').replace('{progress}', Math.round(progress).toString())}
+          PKR {goal.savedAmount.toLocaleString()} saved so far
         </p>
       </CardContent>
-      <CardFooter>
-        <Progress value={progress} className="h-2" />
+      <CardFooter className="flex items-center gap-4">
+        <Progress value={progress} className="h-2 flex-1" />
+        <span className="text-xs font-semibold text-muted-foreground">{Math.round(progress)}%</span>
       </CardFooter>
     </Card>
   );
