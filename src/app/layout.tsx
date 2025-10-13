@@ -6,8 +6,7 @@ import './globals.css';
 import { cn } from '@/lib/utils';
 import { Toaster } from "@/components/ui/toaster"
 import { FirebaseClientProvider } from '@/firebase';
-import { LanguageProvider, useLanguage } from '@/context/language-context';
-import { useEffect, useState } from 'react';
+import { LanguageProvider } from '@/context/language-context';
 
 export default function RootLayout({
   children,
@@ -15,24 +14,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <LanguageProvider>
-      <AppBody>
-        {children}
-      </AppBody>
-    </LanguageProvider>
-  );
-}
-
-function AppBody({ children }: { children: React.ReactNode }) {
-  const { language } = useLanguage();
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  return (
-    <html lang={isClient ? language : 'en'} dir={isClient && language === 'ur' ? 'rtl' : 'ltr'} suppressHydrationWarning>
+    <html lang="en" dir="ltr" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -45,11 +27,13 @@ function AppBody({ children }: { children: React.ReactNode }) {
         <meta name="description" content="Your friendly guide to smart savings." />
       </head>
       <body className={cn('min-h-screen bg-background font-body antialiased')}>
-        <FirebaseClientProvider>
-          {children}
-        </FirebaseClientProvider>
-        <Toaster />
+        <LanguageProvider>
+          <FirebaseClientProvider>
+            {children}
+          </FirebaseClientProvider>
+          <Toaster />
+        </LanguageProvider>
       </body>
     </html>
-  )
+  );
 }

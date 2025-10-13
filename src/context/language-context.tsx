@@ -1,10 +1,9 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useMemo } from 'react';
 import en from '@/locales/en.json';
-import ur from '@/locales/ur.json';
 
-type Language = 'en' | 'ur';
+type Language = 'en';
 
 interface LanguageContextType {
   language: Language;
@@ -13,22 +12,15 @@ interface LanguageContextType {
   t: (key: string) => string;
 }
 
-const translationsData: { [key in Language]: any } = { en, ur };
+const translationsData: { [key in Language]: any } = { en };
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [language, setLanguageState] = useState<Language>('en');
 
-  useEffect(() => {
-    const storedLanguage = localStorage.getItem('bachat-buddy-language') as Language;
-    if (storedLanguage && ['en', 'ur'].includes(storedLanguage)) {
-      setLanguageState(storedLanguage);
-    }
-  }, []);
-
   const setLanguage = (lang: Language) => {
-    localStorage.setItem('bachat-buddy-language', lang);
+    // No need to set in localStorage if only English is supported
     setLanguageState(lang);
   };
   

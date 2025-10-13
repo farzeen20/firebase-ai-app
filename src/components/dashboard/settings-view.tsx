@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLanguage } from '@/context/language-context';
@@ -16,9 +15,10 @@ import { useUser, useFirestore, useDoc, setDocumentNonBlocking, useAuth } from '
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { doc } from 'firebase/firestore';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { sendEmail } from '@/ai/flows/send-email';
+import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth';
 
 
 const profileSchema = z.object({
@@ -33,11 +33,7 @@ const profileSchema = z.object({
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export function SettingsView() {
-    const { language, setLanguage, t } = useLanguage();
-    const languages = [
-        { value: 'en', label: 'English' },
-        { value: 'ur', label: 'Urdu' }
-    ];
+    const { t } = useLanguage();
     const { toast } = useToast();
     const { user } = useUser();
     const auth = useAuth();
@@ -189,9 +185,8 @@ export function SettingsView() {
             </div>
 
             <Tabs defaultValue="profile" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="profile">{t('settings.tabs.profile')}</TabsTrigger>
-                    <TabsTrigger value="language">{t('settings.tabs.language')}</TabsTrigger>
                     <TabsTrigger value="security">{t('settings.tabs.security')}</TabsTrigger>
                 </TabsList>
                 <TabsContent value="profile">
@@ -281,30 +276,6 @@ export function SettingsView() {
                         </CardContent>
                     </Card>
                 </TabsContent>
-                <TabsContent value="language">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>{t('settings.language.title')}</CardTitle>
-                            <CardDescription>{t('settings.language.description')}</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="language">{t('settings.language.appLanguage')}</Label>
-                                 <Select value={language} onValueChange={(value) => setLanguage(value as 'en' | 'ur')}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select a language" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {languages.map(lang => (
-                                            <SelectItem key={lang.value} value={lang.value}>{lang.label}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                             <Button className="bg-accent text-accent-foreground hover:bg-accent/90">{t('settings.language.saveLanguage')}</Button>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
                 <TabsContent value="security">
                      <Card>
                         <CardHeader>
@@ -383,10 +354,8 @@ export function SettingsView() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-
+            <div id="recaptcha-container"></div>
         </div>
     );
 
 }
-
-    
