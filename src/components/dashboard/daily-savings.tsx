@@ -5,22 +5,50 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Progress } from '@/components/ui/progress';
-import { dailySavingData } from '@/lib/data';
-import { Minus, Plus } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
+import { PlusCircle } from 'lucide-react';
 import { useLanguage } from '@/context/language-context';
+import type { SavingEntry } from '@/lib/definitions';
+import { savingsHistoryData } from '@/lib/data';
+import { format } from 'date-fns';
 
 export function DailySavings() {
-  const [dailyAmount, setDailyAmount] = useState(dailySavingData.dailyAmount);
-  const [currentBalance, setCurrentBalance] = useState(dailySavingData.currentBalance);
   const { t } = useLanguage();
-
-  const monthlyGoal = dailyAmount * 30;
-  const progress = (currentBalance / monthlyGoal) * 100;
+  const [savings, setSavings] = useState<SavingEntry[]>(savingsHistoryData);
+  const [newAmount, setNewAmount] = useState('');
+  const [newDate, setNewDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
   const handleAddSaving = () => {
-    setCurrentBalance(prev => prev + dailyAmount);
-  }
+    if (!newAmount || !newDate) return;
+
+    const newEntry: SavingEntry = {
+      id: `s${savings.length + 1}`,
+      date: newDate,
+      amount: parseFloat(newAmount),
+    };
+
+    setSavings(prev => [newEntry, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    setNewAmount('');
+  };
+  
+  const weeklyTotal = savings.reduce((total, entry) => {
+    const entryDate = new Date(entry.date);
+    const today = new Date();
+    const oneWeekAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6);
+    if (entryDate >= oneWeekAgo && entryDate <= today) {
+        return total + entry.amount;
+    }
+    return total;
+  }, 0);
+
+  // Filter savings for the last 7 days to display in the table
+  const recentSavings = savings.filter(entry => {
+     const entryDate = new Date(entry.date);
+     const today = new Date();
+     const oneWeekAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6);
+     return entryDate >= oneWeekAgo && entryDate <= today;
+  });
 
   return (
     <div className="space-y-8">
@@ -29,68 +57,79 @@ export function DailySavings() {
         <p className="text-muted-foreground">{t('dailySavings.description')}</p>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>{t('dailySavings.yourProgress')}</CardTitle>
-            <CardDescription>
-              {t('dailySavings.basedOnGoal').replace('{amount}', dailyAmount.toLocaleString())}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="text-center space-y-2">
-              <p className="text-sm text-muted-foreground">{t('dailySavings.currentBalance')}</p>
-              <p className="text-5xl font-bold tracking-tighter">
-                PKR {currentBalance.toLocaleString()}
-              </p>
-            </div>
-            <div className="space-y-2">
-                <div className="flex justify-between text-sm text-muted-foreground">
-                    <span>{t('dailySavings.monthlyGoal')}</span>
-                    <span>PKR {monthlyGoal.toLocaleString()}</span>
-                </div>
-                <Progress value={progress} className="h-4" />
-                <p className="text-xs text-muted-foreground text-center pt-1">{t('dailySavings.progressAchieved').replace('{progress}', Math.round(progress).toString())}</p>
-            </div>
-          </CardContent>
-          <CardFooter className="justify-center">
-             <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={handleAddSaving}>
-                <Plus className="me-2 h-5 w-5" /> {t('dailySavings.addTodaySaving').replace('{amount}', dailyAmount.toLocaleString())}
-            </Button>
-          </CardFooter>
-        </Card>
+        <div className="lg:col-span-2">
+           <Card>
+            <CardHeader>
+                <CardTitle>Weekly Savings</CardTitle>
+                <CardDescription>Your logged savings for the last 7 days.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Date</TableHead>
+                            <TableHead className="text-right">Amount (PKR)</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {recentSavings.length > 0 ? recentSavings.map(entry => (
+                            <TableRow key={entry.id}>
+                                <TableCell>{format(new Date(entry.date), 'PPP')}</TableCell>
+                                <TableCell className="text-right font-medium">{entry.amount.toLocaleString()}</TableCell>
+                            </TableRow>
+                        )) : (
+                            <TableRow>
+                                <TableCell colSpan={2} className="text-center h-24 text-muted-foreground">
+                                    No savings logged for this week yet.
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                    <TableFooter>
+                        <TableRow>
+                            <TableHead>Weekly Total</TableHead>
+                            <TableHead className="text-right text-lg font-bold">
+                                PKR {weeklyTotal.toLocaleString()}
+                            </TableHead>
+                        </TableRow>
+                    </TableFooter>
+                </Table>
+            </CardContent>
+           </Card>
+        </div>
 
         <div className="space-y-8">
           <Card>
             <CardHeader>
-              <CardTitle>{t('dailySavings.adjustAmount')}</CardTitle>
-              <CardDescription>{t('dailySavings.adjustAmountDescription')}</CardDescription>
+              <CardTitle>Log a New Saving</CardTitle>
+              <CardDescription>Add a new entry to your savings log.</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="flex items-center space-x-2">
-                <Button variant="outline" size="icon" onClick={() => setDailyAmount(d => Math.max(0, d-50))}>
-                  <Minus className="h-4 w-4" />
-                </Button>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="date">Date</Label>
                 <Input 
-                  type="number" 
-                  className="text-center font-bold text-lg" 
-                  value={dailyAmount}
-                  onChange={(e) => setDailyAmount(Number(e.target.value))}
+                  id="date" 
+                  type="date"
+                  value={newDate}
+                  onChange={(e) => setNewDate(e.target.value)}
                 />
-                <Button variant="outline" size="icon" onClick={() => setDailyAmount(d => d+50)}>
-                  <Plus className="h-4 w-4" />
-                </Button>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="amount">Amount (PKR)</Label>
+                <Input 
+                  id="amount"
+                  type="number"
+                  placeholder="e.g., 500"
+                  value={newAmount}
+                  onChange={(e) => setNewAmount(e.target.value)}
+                />
               </div>
             </CardContent>
-          </Card>
-           <Card className='bg-secondary'>
-            <CardHeader>
-              <CardTitle>{t('dailySavings.proTip')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-secondary-foreground">
-                {t('dailySavings.proTipContent')}
-              </p>
-            </CardContent>
+            <CardFooter>
+                 <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90" onClick={handleAddSaving} disabled={!newAmount || !newDate}>
+                    <PlusCircle className="me-2 h-4 w-4" /> Add Saving
+                </Button>
+            </CardFooter>
           </Card>
         </div>
       </div>

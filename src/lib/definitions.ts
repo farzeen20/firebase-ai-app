@@ -20,11 +20,10 @@ export type LiteracyArticle = {
   feedback?: 'clear' | 'unclear';
 };
 
-export type DailySaving = {
-  dailyAmount: number;
-  currentBalance: number;
-  startDate: string;
-  isActive: boolean;
+export type SavingEntry = {
+  id: string;
+  date: string; // YYYY-MM-DD
+  amount: number;
 };
 
 export type FamilyMember = {

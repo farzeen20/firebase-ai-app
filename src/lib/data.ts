@@ -1,6 +1,7 @@
-import type { Goal, DailySaving, FamilyMember, Committee, LiteracyArticle, BudgetItem, Notification } from './definitions';
+import type { Goal, FamilyMember, Committee, LiteracyArticle, BudgetItem, Notification, SavingEntry } from './definitions';
 import { Target, Car, Home, GraduationCap, PiggyBank, Briefcase, HeartHandshake, Users, Wallet, BookOpen, SettingsIcon, Bell } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { subDays, format } from 'date-fns';
 
 export const user = {
   name: 'Ayesha Khan',
@@ -21,12 +22,12 @@ export const navLinks = [
     { href: '/dashboard/settings', label: 'Settings', icon: SettingsIcon },
 ];
 
-export const dailySavingData: DailySaving = {
-  dailyAmount: 500,
-  currentBalance: 75000,
-  startDate: '2024-01-01',
-  isActive: true,
-};
+export const savingsHistoryData: SavingEntry[] = [
+    { id: 's1', date: format(subDays(new Date(), 1), 'yyyy-MM-dd'), amount: 500 },
+    { id: 's2', date: format(subDays(new Date(), 2), 'yyyy-MM-dd'), amount: 750 },
+    { id: 's3', date: format(subDays(new Date(), 4), 'yyyy-MM-dd'), amount: 500 },
+];
+
 
 export const goalsData: Goal[] = [
   {
