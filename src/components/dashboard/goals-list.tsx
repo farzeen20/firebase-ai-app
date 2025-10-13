@@ -49,7 +49,7 @@ function GoalCard({ goal, onDelete }: { goal: Goal; onDelete: (id: string) => vo
       </CardHeader>
       <CardContent className="flex-grow">
         <p className="text-xs text-muted-foreground">
-          {Math.round(progress)}% of your goal
+          {Math.round(progress)}% {t('goals.goalProgress')}
         </p>
       </CardContent>
       <CardFooter>
