@@ -12,7 +12,7 @@ import { useLanguage } from '@/context/language-context';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useUser, useFirestore, useMemoFirebase, useDoc, setDocumentNonBlocking, useAuth, RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from '@/firebase';
+import { useUser, useFirestore, useDoc, setDocumentNonBlocking, useAuth, RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from '@/firebase';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { doc } from 'firebase/firestore';
@@ -26,7 +26,6 @@ const profileSchema = z.object({
     phone: z.string().min(1, 'Phone number is required'),
     cnic: z.string().min(1, 'CNIC is required'),
     twoFAEnabled: z.boolean().optional(),
-    twoFASecret: z.string().optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -48,7 +47,7 @@ export function SettingsView() {
     const recaptchaContainerRef = useRef<HTMLDivElement>(null);
 
 
-    const userDocRef = useMemoFirebase(() => {
+    const userDocRef = useMemo(() => {
         if (!firestore || !user?.uid) return null;
         return doc(firestore, 'users', user.uid);
     }, [firestore, user?.uid]);
@@ -113,8 +112,6 @@ export function SettingsView() {
             setVerificationCode('');
             setConfirmationResult(null);
             setIs2faDialogOpen(true);
-            // We need to ensure reCAPTCHA is set up when the dialog opens
-            setTimeout(setupRecaptcha, 100); 
         } else {
              if (!userDocRef) return;
             setDocumentNonBlocking(userDocRef, { twoFAEnabled: false }, { merge: true });
@@ -137,6 +134,8 @@ export function SettingsView() {
             return;
         }
 
+        // Setup reCAPTCHA on demand
+        setupRecaptcha();
         const appVerifier = (window as any).recaptchaVerifier;
 
         try {
@@ -155,7 +154,11 @@ export function SettingsView() {
                 description: 'There was a problem sending the verification SMS. Please try again.',
             });
             // Reset reCAPTCHA so user can try again
-            setupRecaptcha();
+            if ((window as any).recaptchaVerifier) {
+                (window as any).recaptchaVerifier.render().then((widgetId: any) => {
+                    (window as any).grecaptcha.reset(widgetId);
+                });
+            }
         }
     };
     
@@ -388,7 +391,7 @@ export function SettingsView() {
                         <DialogClose asChild>
                             <Button variant="outline">Cancel</Button>
                         </DialogClose>
-                        <Button onClick={handleVerify2fa} disabled={!verificationCode || !isCodeSent}>Verify & Enable</Button>
+                        <Button onClick={handleVerify2fa} disabled={!verificationCode || !isCodeSent}>Verify &amp; Enable</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -397,5 +400,7 @@ export function SettingsView() {
     );
 
 }
+
+    
 
     
