@@ -1,18 +1,31 @@
 
 'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { familyData } from '@/lib/data';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { PlusCircle, Shield, UserPlus } from 'lucide-react';
+import { PlusCircle, Shield, UserPlus, ShieldCheck } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { useLanguage } from '@/context/language-context';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import type { FamilyMember } from '@/lib/definitions';
 
 export function FamilyMode() {
     const { t } = useLanguage();
-    const parents = familyData.filter(m => m.role === 'parent');
-    const children = familyData.filter(m => m.role === 'child');
+    const [members, setMembers] = useState<FamilyMember[]>(familyData);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+    // Form state
+    const [name, setName] = useState('');
+    const [role, setRole] = useState<'parent' | 'child' | ''>('');
+
+    const parents = members.filter(m => m.role === 'parent');
+    const children = members.filter(m => m.role === 'child');
 
     const sharedGoal = {
         name: "Family Vacation to Murree",
@@ -21,6 +34,24 @@ export function FamilyMode() {
     };
     const progress = (sharedGoal.savedAmount / sharedGoal.targetAmount) * 100;
 
+    const handleAddMember = () => {
+        if (!name || !role) return;
+
+        const newMember: FamilyMember = {
+            id: `f${members.length + 1}`,
+            name,
+            role: role as 'parent' | 'child',
+            avatarUrl: `https://picsum.photos/seed/${Math.random()}/100/100`,
+            avatarHint: 'person portrait',
+        };
+        setMembers(prev => [newMember, ...prev]);
+
+        // Reset form
+        setName('');
+        setRole('');
+        setIsDialogOpen(false);
+    }
+
     return (
         <div className="space-y-8">
             <div className="flex items-center justify-between">
@@ -28,9 +59,45 @@ export function FamilyMode() {
                     <h1 className="text-3xl font-bold">{t('family.title')}</h1>
                     <p className="text-muted-foreground">{t('family.description')}</p>
                 </div>
-                 <Button className="bg-accent text-accent-foreground hover:bg-accent/90">
-                    <UserPlus className="me-2 h-4 w-4" /> {t('family.addMember')}
-                </Button>
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                    <DialogTrigger asChild>
+                         <Button className="bg-accent text-accent-foreground hover:bg-accent/90">
+                            <UserPlus className="me-2 h-4 w-4" /> {t('family.addMember')}
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Add a New Family Member</DialogTitle>
+                            <DialogDescription>
+                                Invite a family member and assign them a role.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="name">Member Name</Label>
+                                <Input id="name" placeholder="e.g., Ali Khan" value={name} onChange={e => setName(e.target.value)} />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="role">Role</Label>
+                                <Select onValueChange={(value) => setRole(value as 'parent' | 'child')} value={role}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select a role" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="parent">Parent</SelectItem>
+                                        <SelectItem value="child">Child</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <DialogClose asChild>
+                                <Button variant="outline">Cancel</Button>
+                            </DialogClose>
+                            <Button onClick={handleAddMember} disabled={!name || !role}>Add Member</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -92,20 +159,20 @@ export function FamilyMode() {
                         <div>
                             <h4 className="font-semibold text-sm mb-2">{t('family.parents')}</h4>
                              {parents.map(member => (
-                                <div key={member.id} className="flex items-center gap-3 mb-2">
+                                <div key={member.id} className="flex items-center gap-3 mb-2 p-2 rounded-lg hover:bg-secondary">
                                     <Avatar>
                                         <AvatarImage src={member.avatarUrl} alt={member.name} data-ai-hint={member.avatarHint} />
                                         <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
                                     </Avatar>
                                     <span className="font-medium">{member.name}</span>
-                                    <Shield className="h-4 w-4 text-accent" />
+                                    <ShieldCheck className="h-5 w-5 text-primary" title="Parental Controls Active" />
                                 </div>
                             ))}
                         </div>
                         <div>
                              <h4 className="font-semibold text-sm mb-2">{t('family.children')}</h4>
                              {children.map(member => (
-                                <div key={member.id} className="flex items-center gap-3 mb-2">
+                                <div key={member.id} className="flex items-center gap-3 mb-2 p-2 rounded-lg hover:bg-secondary">
                                     <Avatar>
                                         <AvatarImage src={member.avatarUrl} alt={member.name} data-ai-hint={member.avatarHint} />
                                         <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
@@ -115,8 +182,13 @@ export function FamilyMode() {
                             ))}
                         </div>
                     </CardContent>
+                    <CardFooter>
+                         <Button variant="outline" className="w-full">Manage Controls</Button>
+                    </CardFooter>
                 </Card>
             </div>
         </div>
     );
 }
+
+    
