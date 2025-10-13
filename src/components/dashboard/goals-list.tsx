@@ -1,11 +1,10 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { goalsData } from '@/lib/data';
 import type { Goal } from '@/lib/definitions';
 import { PlusCircle, CheckCircle2, PauseCircle, Star, PiggyBank, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from '@/components/ui/dialog';
@@ -13,6 +12,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useLanguage } from '@/context/language-context';
+import { useUser, useFirestore, useCollection, addDocumentNonBlocking, deleteDocumentNonBlocking, useMemoFirebase } from '@/firebase';
+import { collection, doc, serverTimestamp } from 'firebase/firestore';
 
 function GoalCard({ goal, onDelete }: { goal: Goal; onDelete: (id: string) => void; }) {
   const { t } = useLanguage();
@@ -33,7 +34,7 @@ function GoalCard({ goal, onDelete }: { goal: Goal; onDelete: (id: string) => vo
         <div className="flex items-start gap-4">
             <div className="flex-shrink-0">
                 <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <goal.icon className="w-6 h-6 text-primary" />
+                    <PiggyBank className="w-6 h-6 text-primary" />
                 </div>
             </div>
             <div className="flex-1">
@@ -60,30 +61,36 @@ function GoalCard({ goal, onDelete }: { goal: Goal; onDelete: (id: string) => vo
 }
 
 export function GoalsList() {
-    const [goals, setGoals] = useState<Goal[]>(goalsData);
+    const { t } = useLanguage();
+    const { user } = useUser();
+    const firestore = useFirestore();
+
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [newGoalName, setNewGoalName] = useState('');
     const [newGoalTarget, setNewGoalTarget] = useState('');
     const [newGoalDate, setNewGoalDate] = useState('');
-    const { t } = useLanguage();
+    
+    const goalsCollectionRef = useMemoFirebase(() => {
+        if (!firestore || !user?.uid) return null;
+        return collection(firestore, 'users', user.uid, 'goals');
+    }, [firestore, user?.uid]);
+
+    const { data: goals, isLoading } = useCollection<Goal>(goalsCollectionRef);
 
     const handleAddGoal = () => {
-        if (!newGoalName || !newGoalTarget) return;
+        if (!newGoalName || !newGoalTarget || !goalsCollectionRef) return;
 
-        const newGoal: Goal = {
-            id: (goals.length + 1).toString(),
+        const newGoal = {
             name: newGoalName,
             targetAmount: parseFloat(newGoalTarget),
             savedAmount: 0,
-            startDate: new Date().toISOString(),
-            endDate: newGoalDate || undefined,
+            startDate: serverTimestamp(),
+            endDate: newGoalDate || null,
             status: 'active',
-            icon: PiggyBank,
         };
 
-        setGoals(prevGoals => [newGoal, ...prevGoals]);
+        addDocumentNonBlocking(goalsCollectionRef, newGoal);
         
-        // Reset form and close dialog
         setNewGoalName('');
         setNewGoalTarget('');
         setNewGoalDate('');
@@ -91,14 +98,16 @@ export function GoalsList() {
     };
 
     const handleDeleteGoal = (id: string) => {
-        setGoals(prevGoals => prevGoals.filter(goal => goal.id !== id));
+        if (!goalsCollectionRef) return;
+        const docRef = doc(goalsCollectionRef.firestore, goalsCollectionRef.path, id);
+        deleteDocumentNonBlocking(docRef);
     };
 
     const isFormValid = newGoalName.trim() !== '' && newGoalTarget.trim() !== '';
 
-    const activeGoals = goals.filter(g => g.status === 'active');
-    const completedGoals = goals.filter(g => g.status === 'completed');
-    const allGoals = goals;
+    const activeGoals = useMemo(() => goals?.filter(g => g.status === 'active') || [], [goals]);
+    const completedGoals = useMemo(() => goals?.filter(g => g.status === 'completed') || [], [goals]);
+    const allGoals = goals || [];
 
     return (
         <div className="space-y-8">
@@ -168,14 +177,25 @@ export function GoalsList() {
                     <TabsTrigger value="completed">{t('goals.tabCompleted')} ({completedGoals.length})</TabsTrigger>
                     <TabsTrigger value="all">{t('goals.tabAll')} ({allGoals.length})</TabsTrigger>
                 </TabsList>
-                <TabsContent value="active" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
+                <TabsContent value="active" className="pt-4">
+                   {isLoading && <p>Loading goals...</p>}
+                   {!isLoading && activeGoals.length === 0 && <p className="text-muted-foreground">No active goals yet. Create one to get started!</p>}
+                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {activeGoals.map(goal => <GoalCard key={goal.id} goal={goal} onDelete={handleDeleteGoal} />)}
+                   </div>
                 </TabsContent>
-                <TabsContent value="completed" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
+                <TabsContent value="completed" className="pt-4">
+                   {isLoading && <p>Loading goals...</p>}
+                   {!isLoading && completedGoals.length === 0 && <p className="text-muted-foreground">No completed goals yet.</p>}
+                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {completedGoals.map(goal => <GoalCard key={goal.id} goal={goal} onDelete={handleDeleteGoal} />)}
+                   </div>
                 </TabsContent>
-                <TabsContent value="all" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
+                <TabsContent value="all" className="pt-4">
+                   {isLoading && <p>Loading goals...</p>}
+                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {allGoals.map(goal => <GoalCard key={goal.id} goal={goal} onDelete={handleDeleteGoal} />)}
+                   </div>
                 </TabsContent>
             </Tabs>
         </div>

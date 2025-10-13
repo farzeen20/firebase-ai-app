@@ -1,12 +1,14 @@
+
+import { Timestamp } from 'firebase/firestore';
+
 export type Goal = {
   id: string;
   name: string;
   targetAmount: number;
   savedAmount: number;
-  startDate: string;
-  endDate?: string;
+  startDate: Timestamp | string;
+  endDate?: Timestamp | string | null;
   status: 'active' | 'completed' | 'paused';
-  icon: React.ComponentType<{ className?: string }>;
 };
 
 export type LiteracyArticle = {
@@ -24,6 +26,7 @@ export type SavingEntry = {
   id: string;
   date: string; // YYYY-MM-DD
   amount: number;
+  createdAt: Timestamp | string;
 };
 
 export type FamilyMember = {

@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,49 +10,69 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFoo
 import { PlusCircle, Trash2 } from 'lucide-react';
 import { useLanguage } from '@/context/language-context';
 import type { SavingEntry } from '@/lib/definitions';
-import { savingsHistoryData } from '@/lib/data';
 import { format } from 'date-fns';
+import { useUser, useFirestore, useCollection, addDocumentNonBlocking, deleteDocumentNonBlocking, useMemoFirebase } from '@/firebase';
+import { collection, doc, serverTimestamp, query, orderBy, where, Timestamp } from 'firebase/firestore';
 
 export function DailySavings() {
   const { t } = useLanguage();
-  const [savings, setSavings] = useState<SavingEntry[]>(savingsHistoryData);
+  const { user } = useUser();
+  const firestore = useFirestore();
+
   const [newAmount, setNewAmount] = useState('');
   const [newDate, setNewDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
-  const handleAddSaving = () => {
-    if (!newAmount || !newDate) return;
+  const savingsCollectionRef = useMemoFirebase(() => {
+    if (!firestore || !user?.uid) return null;
+    return collection(firestore, 'users', user.uid, 'dailySavings');
+  }, [firestore, user?.uid]);
 
-    const newEntry: SavingEntry = {
-      id: `s${savings.length + 1}`,
+  const today = new Date();
+  const oneWeekAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6);
+
+  const recentSavingsQuery = useMemoFirebase(() => {
+    if (!savingsCollectionRef) return null;
+    return query(
+      savingsCollectionRef,
+      where('createdAt', '>=', oneWeekAgo),
+      where('createdAt', '<=', today),
+      orderBy('createdAt', 'desc')
+    );
+  }, [savingsCollectionRef, oneWeekAgo, today]);
+
+
+  const { data: savings, isLoading } = useCollection<SavingEntry>(recentSavingsQuery);
+
+  const handleAddSaving = () => {
+    if (!newAmount || !newDate || !savingsCollectionRef) return;
+
+    const newEntry = {
       date: newDate,
       amount: parseFloat(newAmount),
+      createdAt: serverTimestamp(),
     };
 
-    setSavings(prev => [newEntry, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    addDocumentNonBlocking(savingsCollectionRef, newEntry);
     setNewAmount('');
   };
   
   const handleDeleteSaving = (id: string) => {
-    setSavings(prev => prev.filter(entry => entry.id !== id));
+    if (!savingsCollectionRef) return;
+    const docRef = doc(savingsCollectionRef.firestore, savingsCollectionRef.path, id);
+    deleteDocumentNonBlocking(docRef);
   };
 
-  const weeklyTotal = savings.reduce((total, entry) => {
-    const entryDate = new Date(entry.date);
-    const today = new Date();
-    const oneWeekAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6);
-    if (entryDate >= oneWeekAgo && entryDate <= today) {
-        return total + entry.amount;
-    }
-    return total;
-  }, 0);
+  const weeklyTotal = useMemo(() => {
+    return savings?.reduce((total, entry) => total + entry.amount, 0) || 0;
+  }, [savings]);
 
-  // Filter savings for the last 7 days to display in the table
-  const recentSavings = savings.filter(entry => {
-     const entryDate = new Date(entry.date);
-     const today = new Date();
-     const oneWeekAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6);
-     return entryDate >= oneWeekAgo && entryDate <= today;
-  });
+  const getDisplayDate = (entry: SavingEntry) => {
+    if (entry.createdAt instanceof Timestamp) {
+      return format(entry.createdAt.toDate(), 'PPP');
+    }
+    // Fallback for local additions before server timestamp is applied
+    return format(new Date(entry.date), 'PPP');
+  }
 
   return (
     <div className="space-y-8">
@@ -76,9 +97,10 @@ export function DailySavings() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {recentSavings.length > 0 ? recentSavings.map(entry => (
+                        {isLoading && <TableRow><TableCell colSpan={3} className="text-center h-24">Loading...</TableCell></TableRow>}
+                        {!isLoading && savings && savings.length > 0 ? savings.map(entry => (
                             <TableRow key={entry.id}>
-                                <TableCell>{format(new Date(entry.date), 'PPP')}</TableCell>
+                                <TableCell>{getDisplayDate(entry)}</TableCell>
                                 <TableCell className="text-right font-medium">{entry.amount.toLocaleString()}</TableCell>
                                 <TableCell className="text-right">
                                     <Button variant="ghost" size="icon" onClick={() => handleDeleteSaving(entry.id)}>
@@ -88,11 +110,13 @@ export function DailySavings() {
                                 </TableCell>
                             </TableRow>
                         )) : (
+                           !isLoading && (
                             <TableRow>
                                 <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">
                                     No savings logged for this week yet.
                                 </TableCell>
                             </TableRow>
+                           )
                         )}
                     </TableBody>
                     <TableFooter>
