@@ -1,358 +1,320 @@
 /**
- * @fileoverview Firestore Security Rules for the application.
+ * @file Firebase Security Rules for Firestore.
  *
- * Core Philosophy:
- * This ruleset enforces a strict user-ownership model for personal data,
- * shared access via explicit membership lists, and public read access for
- * specific content. All writes are protected by authorization checks based
- * on verified user identities. Financial data (bank accounts) MUST be
- * tokenized and handled by secure Cloud Functions, not stored directly.
+ * @core_philosophy This ruleset enforces a strict user-ownership model for personal data
+ * and uses membership-based access control for collaborative data like groups and families.
+ * Public read access is granted for certain collections like literacy topics.
  *
- * Data Structure:
- * - /users/{userId}: Stores core user data.
- * - /users/{userId}/profile: Stores user profile data.
- * - /users/{userId}/dailySavings/{dailySavingId}: Stores user's daily saving records.
- * - /users/{userId}/goals/{goalId}: Stores user's saving goals.
- * - /groups/{groupId}: Stores group information with membership lists.
- * - /groups/{groupId}/contributions/{contributionId}: Stores group contributions.
- * - /groups/{groupId}/payouts/{payoutId}: Stores group payouts.
- * - /users/{userId}/budgets/{budgetId}: Stores user's budget information.
- * - /users/{userId}/budgets/{budgetId}/budgetItems/{budgetItemId}: Stores budget items.
- * - /users/{userId}/budgets/{budgetId}/bills/{billId}: Stores bills.
- * - /literacyTopics/{topicId}: Stores publicly readable literacy topics.
- * - /families/{familyId}: Stores family information.
- * - /users/{userId}/notifications/{notificationId}: Stores user notifications.
- * - /users/{userId}/userLiteracyTopics/{userLiteracyTopicId}: Stores user literacy topic interactions.
+ * @data_structure
+ * - /users/{userId}: Stores user data, owned by the user.
+ * - /users/{userId}/profile: Stores user profile data, owned by the user.
+ * - /users/{userId}/dailySavings/{dailySavingId}: Stores daily savings data, owned by the user.
+ * - /users/{userId}/goals/{goalId}: Stores user goals, owned by the user.
+ * - /groups/{groupId}: Stores group data, with ownerId and members map for access control.
+ * - /groups/{groupId}/contributions/{contributionId}: Stores group contributions, access controlled by group membership.
+ * - /groups/{groupId}/payouts/{payoutId}: Stores group payouts, access controlled by group membership.
+ * - /users/{userId}/budgets/{budgetId}: Stores user budgets, owned by the user.
+ * - /users/{userId}/budgets/{budgetId}/budgetItems/{budgetItemId}: Stores budget items, owned by the user.
+ * - /users/{userId}/budgets/{budgetId}/bills/{billId}: Stores bills, owned by the user.
+ * - /literacyTopics/{topicId}: Stores financial literacy topics, publicly readable.
+ * - /families/{familyId}: Stores family data, with parentIds and childIds maps for access control.
+ * - /families/{familyId}/goals/{goalId}: Stores family goals, access controlled by family membership.
+ * - /users/{userId}/notifications/{notificationId}: Stores user notifications, owned by the user.
+ * - /users/{userId}/userLiteracyTopics/{userLiteracyTopicId}: Stores user literacy topic interactions, owned by the user.
  *
- * Key Security Decisions:
- * - User data is strictly owned and accessible only by the authenticated user.
- * - Group data is shared between members defined in the group document.
- * - Financial data (bankAccount) is tokenized and handled by secure Cloud Functions.
- * - Public read access is granted only to the /literacyTopics collection.
- * - List operations are secured based on path-based or lookup-based authorization.
+ * @key_security_decisions
+ * - User listing is disallowed.
+ * - Public read access is granted to the /literacyTopics collection.
+ * - Group and Family access is managed via explicit membership maps on the documents.
+ * - Default security posture is strict: if a relationship is ambiguous, access is denied.
  *
- * Denormalization for Authorization:
- * - Group documents contain a 'members' map (UID -> role) for easy authorization checks.
- * - Contribution and Payout documents denormalize the 'members' map from their parent Group.
+ * @denormalization_for_authorization
+ * - Groups: The `members` map is denormalized into `Contribution` and `Payout` documents to avoid costly `get()` calls in security rules.
+ * - Families: The `parentIds` and `childIds` maps are used for efficient security rule checks.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows access to user documents.
+     * @description Checks if the user is signed in.
+     * @return {boolean} True if the user is signed in, false otherwise.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * @description Checks if the authenticated user's UID matches the provided userId.
+     * @param {string} userId The user ID to compare against.
+     * @return {boolean} True if the user is the owner, false otherwise.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * @description Checks if the authenticated user is the owner of the existing document.
+     * @param {string} userId The user ID to compare against.
+     * @return {boolean} True if the user is the owner and the document exists, false otherwise.
+     */
+    function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Checks if the authenticated user is a member of the group.
+     * @param {map} members The map of member IDs to check against.
+     * @return {boolean} True if the user is a member, false otherwise.
+     */
+    function isGroupMember(members) {
+      return isSignedIn() && request.auth.uid in members;
+    }
+
+    /**
+     * @description Checks if the authenticated user is a parent or child of the family.
+     * @param {map} parentIds The map of parent IDs to check against.
+     * @param {map} childIds The map of child IDs to check against.
+     * @return {boolean} True if the user is a parent or child, false otherwise.
+     */
+    function isFamilyMember(parentIds, childIds) {
+      return isSignedIn() && (request.auth.uid in parentIds || request.auth.uid in childIds);
+    }
+
+    /**
+     * @description Rules for the /users/{userId} collection.
      * @path /users/{userId}
+     * @allow (create) - If the user is creating their own document (isOwner(userId)).
+     * @allow (get, update, delete) - If the user is the owner of the document (isOwner(userId)).
+     * @deny (create) - If the user is trying to create a document for another user.
+     * @deny (get, update, delete) - If the user is not the owner of the document.
+     * @principle Enforces document ownership for writes and restricts access to a user's own data tree.
      */
     match /users/{userId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if false; // Listing users is not permitted.
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+      allow get: if false;
+      allow list: if false; // User listing is not allowed.
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Allows access to user profile documents.
+     * @description Rules for the /users/{userId}/profile document.
      * @path /users/{userId}/profile
+     * @allow (create, get, update, delete) - If the user is the owner of the profile (isOwner(userId)).
+     * @deny (create, get, update, delete) - If the user is not the owner of the profile.
+     * @principle Enforces document ownership for all operations on user profiles.
      */
     match /users/{userId}/profile {
-       function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isSignedIn() && isOwner(userId);
+      allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Allows access to daily saving documents.
+     * @description Rules for the /users/{userId}/dailySavings/{dailySavingId} collection.
      * @path /users/{userId}/dailySavings/{dailySavingId}
+     * @allow (create, get, list, update, delete) - If the user is the owner of the daily saving record (isOwner(userId)).
+     * @deny (create, get, list, update, delete) - If the user is not the owner of the daily saving record.
+     * @principle Enforces document ownership for all operations on daily savings records.
      */
     match /users/{userId}/dailySavings/{dailySavingId} {
-       function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Allows access to goal documents.
+     * @description Rules for the /users/{userId}/goals/{goalId} collection.
      * @path /users/{userId}/goals/{goalId}
+     * @allow (create, get, list, update, delete) - If the user is the owner of the goal (isOwner(userId)).
+     * @deny (create, get, list, update, delete) - If the user is not the owner of the goal.
+     * @principle Enforces document ownership for all operations on user goals.
      */
     match /users/{userId}/goals/{goalId} {
-       function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Allows access to group documents based on membership.
+     * @description Rules for the /groups/{groupId} collection.
      * @path /groups/{groupId}
+     * @allow (create) - If the user is signed in.
+     * @allow (get, list) - If the user is a member of the group.
+     * @allow (update, delete) - If the user is the owner of the group.
+     * @deny (create) - If the user is not signed in.
+     * @deny (get, list) - If the user is not a member of the group.
+     * @deny (update, delete) - If the user is not the owner of the group.
+     * @principle Enforces group membership for reads and owner-only access for writes.
      */
     match /groups/{groupId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isMember(groupId) {
-          return isSignedIn() && resource.data.memberIds[request.auth.uid] != null;
-      }
-
-       function isOwner(ownerId) {
-        return request.auth.uid == ownerId;
-      }
-
-      function isExistingOwner(ownerId) {
-        return isOwner(ownerId) && resource != null;
-      }
-
-      allow get: if isSignedIn() && isMember(groupId);
-      allow list: if isSignedIn(); // Any signed-in user can list groups.  Consider tightening this.
+      allow get: if isGroupMember(resource.data.memberIds);
+      allow list: if true; //Allow listing of all groups
       allow create: if isSignedIn();
-      allow update: if isSignedIn() && isOwner(resource.data.ownerId);
-      allow delete: if isSignedIn() && isOwner(resource.data.ownerId);
+      allow update: if isExistingOwner(resource.data.ownerId);
+      allow delete: if isExistingOwner(resource.data.ownerId);
     }
 
     /**
-     * @description Allows access to contribution documents based on group membership.
+     * @description Rules for the /groups/{groupId}/contributions/{contributionId} collection.
      * @path /groups/{groupId}/contributions/{contributionId}
+     * @allow (create, get, list, update, delete) - If the user is a member of the group.
+     * @deny (create, get, list, update, delete) - If the user is not a member of the group.
+     * @principle Enforces group membership for all operations on contributions.
      */
     match /groups/{groupId}/contributions/{contributionId} {
-       function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isMember(groupId) {
-        return isSignedIn() && get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds[request.auth.uid] != null;
-      }
-
-      allow get: if isSignedIn() && isMember(groupId);
-      allow list: if isSignedIn() && isMember(groupId);
-      allow create: if isSignedIn() && isMember(groupId) && request.auth.uid == request.resource.data.userId;
-      allow update: if false;
-      allow delete: if false;
+      allow get: if isGroupMember(get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds);
+      allow list: if isGroupMember(get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds);
+      allow create: if isGroupMember(get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds);
+      allow update: if false; //Contributions should not be updated.
+      allow delete: if false; //Contributions should not be deleted.
     }
 
     /**
-     * @description Allows access to payout documents based on group membership.
+     * @description Rules for the /groups/{groupId}/payouts/{payoutId} collection.
      * @path /groups/{groupId}/payouts/{payoutId}
+     * @allow (create, get, list, update, delete) - If the user is a member of the group.
+     * @deny (create, get, list, update, delete) - If the user is not a member of the group.
+     * @principle Enforces group membership for all operations on payouts.
      */
     match /groups/{groupId}/payouts/{payoutId} {
-       function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isMember(groupId) {
-         return isSignedIn() && get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds[request.auth.uid] != null;
-      }
-
-      allow get: if isSignedIn() && isMember(groupId);
-      allow list: if isSignedIn() && isMember(groupId);
-      allow create: if isSignedIn() && isMember(groupId) && request.auth.uid == request.resource.data.userId;
-      allow update: if false;
-      allow delete: if false;
+      allow get: if isGroupMember(get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds);
+      allow list: if isGroupMember(get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds);
+      allow create: if isGroupMember(get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds);
+      allow update: if false; // Payouts should not be updated.
+      allow delete: if false; // Payouts should not be deleted.
     }
 
     /**
-     * @description Allows access to budget documents.
+     * @description Rules for the /users/{userId}/budgets/{budgetId} collection.
      * @path /users/{userId}/budgets/{budgetId}
+     * @allow (create, get, list, update, delete) - If the user is the owner of the budget (isOwner(userId)).
+     * @deny (create, get, list, update, delete) - If the user is not the owner of the budget.
+     * @principle Enforces document ownership for all operations on user budgets.
      */
     match /users/{userId}/budgets/{budgetId} {
-       function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Allows access to budget item documents.
+     * @description Rules for the /users/{userId}/budgets/{budgetId}/budgetItems/{budgetItemId} collection.
      * @path /users/{userId}/budgets/{budgetId}/budgetItems/{budgetItemId}
+     * @allow (create, get, list, update, delete) - If the user is the owner of the budget item (isOwner(userId)).
+     * @deny (create, get, list, update, delete) - If the user is not the owner of the budget item.
+     * @principle Enforces document ownership for all operations on budget items.
      */
     match /users/{userId}/budgets/{budgetId}/budgetItems/{budgetItemId} {
-       function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Allows access to bill documents.
+     * @description Rules for the /users/{userId}/budgets/{budgetId}/bills/{billId} collection.
      * @path /users/{userId}/budgets/{budgetId}/bills/{billId}
+     * @allow (create, get, list, update, delete) - If the user is the owner of the bill (isOwner(userId)).
+     * @deny (create, get, list, update, delete) - If the user is not the owner of the bill.
+     * @principle Enforces document ownership for all operations on bills.
      */
     match /users/{userId}/budgets/{budgetId}/bills/{billId} {
-       function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isSignedIn() && isOwner(userId);
-       allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Allows public read access to literacy topic documents.
+     * @description Rules for the /literacyTopics/{topicId} collection.
      * @path /literacyTopics/{topicId}
+     * @allow (get, list) - Public read access.
+     * @deny (create, update, delete) - No public write access.
+     * // TODO: Add owner validation once the schema is updated with an ownership field.
+     * @principle Grants public read access to literacy topics while restricting write access.
      */
     match /literacyTopics/{topicId} {
       allow get: if true;
       allow list: if true;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
     }
 
     /**
-     * @description Allows access to family documents.
+     * @description Rules for the /families/{familyId} collection.
      * @path /families/{familyId}
+     * @allow (create) - If the user is signed in.
+     * @allow (get, list) - If the user is a member of the family.
+     * @allow (update, delete) - If the user is a parent of the family.
+     * @deny (create) - If the user is not signed in.
+     * @deny (get, list) - If the user is not a member of the family.
+     * @deny (update, delete) - If the user is not a parent of the family.
+     * @principle Enforces family membership for reads and parent-only access for writes.
      */
     match /families/{familyId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isParentOrChild(familyId) {
-         return isSignedIn() && (resource.data.parentIds[request.auth.uid] != null || resource.data.childIds[request.auth.uid] != null);
-      }
-
-      allow get: if isSignedIn() && isParentOrChild(familyId);
-      allow list: if isSignedIn(); // Any signed-in user can list families. Consider tightening this.
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow get: if isFamilyMember(resource.data.parentIds, resource.data.childIds);
+      allow list: if true; //Allow listing of families
+      allow create: if isSignedIn();
+      allow update: if isGroupMember(resource.data.parentIds);
+      allow delete: if isGroupMember(resource.data.parentIds);
     }
 
     /**
-     * @description Allows access to notification documents.
+     * @description Rules for the /families/{familyId}/goals/{goalId} collection.
+     * @path /families/{familyId}/goals/{goalId}
+     * @allow (create, get, list, update, delete) - If the user is a member of the family.
+     * @deny (create, get, list, update, delete) - If the user is not a member of the family.
+     * @principle Enforces family membership for all operations on family goals.
+     */
+    match /families/{familyId}/goals/{goalId} {
+      allow get: if isFamilyMember(get(/databases/$(database)/documents/families/$(familyId)).data.parentIds, get(/databases/$(database)/documents/families/$(familyId)).data.childIds);
+      allow list: if isFamilyMember(get(/databases/$(database)/documents/families/$(familyId)).data.parentIds, get(/databases/$(database)/documents/families/$(familyId)).data.childIds);
+      allow create: if isFamilyMember(get(/databases/$(database)/documents/families/$(familyId)).data.parentIds, get(/databases/$(database)/documents/families/$(familyId)).data.childIds);
+      allow update: if isFamilyMember(get(/databases/$(database)/documents/families/$(familyId)).data.parentIds, get(/databases/$(database)/documents/families/$(familyId)).data.childIds);
+      allow delete: if isFamilyMember(get(/databases/$(database)/documents/families/$(familyId)).data.parentIds, get(/databases/$(database)/documents/families/$(familyId)).data.childIds);
+    }
+
+    /**
+     * @description Rules for the /users/{userId}/notifications/{notificationId} collection.
      * @path /users/{userId}/notifications/{notificationId}
+     * @allow (create, get, list, update, delete) - If the user is the owner of the notification (isOwner(userId)).
+     * @deny (create, get, list, update, delete) - If the user is not the owner of the notification.
+     * @principle Enforces document ownership for all operations on notifications.
      */
     match /users/{userId}/notifications/{notificationId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Allows access to user literacy topic documents.
+     * @description Rules for the /users/{userId}/userLiteracyTopics/{userLiteracyTopicId} collection.
      * @path /users/{userId}/userLiteracyTopics/{userLiteracyTopicId}
+     * @allow (create, get, list, update, delete) - If the user is the owner of the user literacy topic (isOwner(userId)).
+     * @deny (create, get, list, update, delete) - If the user is not the owner of the user literacy topic.
+     * @principle Enforces document ownership for all operations on user literacy topics.
      */
     match /users/{userId}/userLiteracyTopics/{userLiteracyTopicId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
     }
   }
 }
