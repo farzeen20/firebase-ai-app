@@ -29,7 +29,7 @@ function GoalCard({ goal, onDelete }: { goal: Goal; onDelete: (id: string) => vo
 
   return (
     <Card className="flex flex-col">
-      <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+      <CardHeader className="flex-row items-start justify-between gap-4 space-y-0">
         <div className="flex items-start gap-4">
             <div className="flex-shrink-0">
                 <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -41,12 +41,12 @@ function GoalCard({ goal, onDelete }: { goal: Goal; onDelete: (id: string) => vo
               <CardDescription>{t('goals.goalTarget').replace('{amount}', goal.targetAmount.toLocaleString())}</CardDescription>
             </div>
         </div>
-        <div className="flex flex-col items-end gap-1">
+        <div className="flex flex-col items-end gap-1 flex-shrink-0">
           {getStatusChip()}
-          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onDelete(goal.id)}>
+          <Button variant="ghost" size="icon" className="h-6 w-6 self-end" onClick={() => onDelete(goal.id)}>
               <Trash2 className="h-4 w-4 text-destructive" />
               <span className="sr-only">Delete Goal</span>
-        </Button>
+          </Button>
         </div>
       </CardHeader>
       <CardContent className="flex-grow pt-2">
