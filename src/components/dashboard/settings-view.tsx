@@ -134,8 +134,9 @@ export function SettingsView() {
                 setSentCode(code);
                 setIsCodeSent(true);
                 toast({
-                    title: 'Code Sent!',
-                    description: `A verification code has been sent to ${email}. (Check console for simulation)`,
+                    title: 'Verification Code (For Simulation)',
+                    description: `Your 2FA code is: ${code}`,
+                    duration: 10000, // Keep toast visible longer
                 });
             } else {
                 throw new Error('Flow did not return a success status or code.');
