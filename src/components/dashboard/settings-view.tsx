@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,7 +17,10 @@ import { useUser, useFirestore, useMemoFirebase, useDoc, setDocumentNonBlocking 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { doc } from 'firebase/firestore';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import * as twofa from 'node-2fa';
+import Image from 'next/image';
 
 const profileSchema = z.object({
     firstName: z.string().min(1, 'First name is required'),
@@ -24,6 +28,8 @@ const profileSchema = z.object({
     email: z.string().email('Invalid email address'),
     phone: z.string().min(1, 'Phone number is required'),
     cnic: z.string().min(1, 'CNIC is required'),
+    twoFAEnabled: z.boolean().optional(),
+    twoFASecret: z.string().optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -37,6 +43,9 @@ export function SettingsView() {
     const { toast } = useToast();
     const { user } = useUser();
     const firestore = useFirestore();
+    const [is2faDialogOpen, setIs2faDialogOpen] = useState(false);
+    const [twoFaConfig, setTwoFaConfig] = useState<{ qr: string, secret: string } | null>(null);
+    const [verificationCode, setVerificationCode] = useState('');
 
     const userDocRef = useMemoFirebase(() => {
         if (!firestore || !user?.uid) return null;
@@ -53,6 +62,7 @@ export function SettingsView() {
             email: '',
             phone: '',
             cnic: '',
+            twoFAEnabled: false,
         },
     });
 
@@ -72,13 +82,60 @@ export function SettingsView() {
             return;
         }
 
-        setDocumentNonBlocking(userDocRef, data, { merge: true });
+        const dataToSave = { ...data };
+        delete dataToSave.twoFAEnabled; // Don't save 2FA enabled status directly from this form
+        
+        setDocumentNonBlocking(userDocRef, dataToSave, { merge: true });
 
         toast({
             title: 'Profile Updated',
             description: 'Your profile information has been successfully saved.',
         });
     };
+    
+    const handle2faToggle = (enabled: boolean) => {
+        if (enabled) {
+            // User wants to enable 2FA, generate secret and show dialog
+            const newSecret = twofa.generateSecret({ name: 'Bachat Buddy', account: user?.email ?? 'user' });
+            setTwoFaConfig(newSecret);
+            setIs2faDialogOpen(true);
+        } else {
+            // User wants to disable 2FA
+             if (!userDocRef) return;
+            setDocumentNonBlocking(userDocRef, { twoFAEnabled: false, twoFASecret: '' }, { merge: true });
+            form.setValue('twoFAEnabled', false);
+            toast({
+                title: '2FA Disabled',
+                description: 'Two-factor authentication has been disabled.',
+            });
+        }
+    };
+    
+    const handleVerify2fa = () => {
+        if (!twoFaConfig || !verificationCode) return;
+        
+        const delta = twofa.verifyToken(twoFaConfig.secret, verificationCode);
+        
+        if (delta !== null && delta.delta === 0) {
+            if (!userDocRef) return;
+            setDocumentNonBlocking(userDocRef, { twoFAEnabled: true, twoFASecret: twoFaConfig.secret }, { merge: true });
+            form.setValue('twoFAEnabled', true);
+            toast({
+                title: '2FA Enabled!',
+                description: 'Two-factor authentication has been successfully set up.',
+            });
+            setIs2faDialogOpen(false);
+            setTwoFaConfig(null);
+            setVerificationCode('');
+        } else {
+            toast({
+                variant: 'destructive',
+                title: 'Invalid Code',
+                description: 'The verification code is incorrect. Please try again.',
+            });
+        }
+    };
+
 
     return (
         <div className="space-y-8">
@@ -122,6 +179,7 @@ export function SettingsView() {
                                             render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel>{t('settings.profile.lastName')}</FormLabel>
+
                                                     <FormControl>
                                                         <Input {...field} disabled={isLoading} />
                                                     </FormControl>
@@ -217,7 +275,20 @@ export function SettingsView() {
                                         {t('settings.security.twoFactorDescription')}
                                     </p>
                                 </div>
-                                <Switch />
+                                <FormField
+                                    control={form.control}
+                                    name="twoFAEnabled"
+                                    render={({ field }) => (
+                                        <Switch
+                                            checked={field.value}
+                                            onCheckedChange={(checked) => {
+                                                field.onChange(checked);
+                                                handle2faToggle(checked);
+                                            }}
+                                            disabled={isLoading}
+                                        />
+                                    )}
+                                />
                             </div>
                              <div className="space-y-2">
                                 <Label>{t('settings.security.changePassword')}</Label>
@@ -232,6 +303,40 @@ export function SettingsView() {
                     </Card>
                 </TabsContent>
             </Tabs>
+            
+            <Dialog open={is2faDialogOpen} onOpenChange={setIs2faDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Enable Two-Factor Authentication</DialogTitle>
+                        <DialogDescription>
+                            Scan the QR code with your authenticator app (e.g., Google Authenticator) and enter the code to verify.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {twoFaConfig && (
+                        <div className="flex flex-col items-center gap-4 py-4">
+                            <Image src={twoFaConfig.qr} alt="2FA QR Code" width={200} height={200} />
+                            <p className="text-sm text-muted-foreground">Or enter this key manually:</p>
+                            <p className="font-mono bg-secondary p-2 rounded-md">{twoFaConfig.secret}</p>
+                            <div className="grid w-full max-w-sm items-center gap-1.5">
+                                <Label htmlFor="verification-code">Verification Code</Label>
+                                <Input 
+                                    id="verification-code" 
+                                    placeholder="Enter 6-digit code"
+                                    value={verificationCode}
+                                    onChange={(e) => setVerificationCode(e.target.value)} 
+                                />
+                            </div>
+                        </div>
+                    )}
+                    <DialogFooter>
+                        <DialogClose asChild>
+                            <Button variant="outline">Cancel</Button>
+                        </DialogClose>
+                        <Button onClick={handleVerify2fa} disabled={!verificationCode}>Verify & Enable</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
         </div>
     );
 }
