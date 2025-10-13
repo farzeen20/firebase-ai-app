@@ -93,3 +93,5 @@ export const notificationsData: Notification[] = [
     { id: 'n3', type: 'Budget Alert', message: 'You have exceeded your "Entertainment" budget for this month by PKR 500.', timestamp: '2024-07-18T09:00:00Z', read: true },
     { id: 'n4', type: 'New Article', message: 'A new article "Tips for Saving on Groceries" has been added to the Literacy Hub.', timestamp: '2024-07-17T12:00:00Z', read: true },
 ];
+
+    

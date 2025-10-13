@@ -18,7 +18,7 @@ import {
   ChartLegendContent,
 } from '@/components/ui/chart';
 import { Bar, BarChart, Pie, PieChart, Cell, ResponsiveContainer, XAxis, YAxis } from 'recharts';
-import { user, dailySavingData, goalsData, committeesData, budgetItemsData } from '@/lib/data';
+import { user, savingsHistoryData, goalsData, committeesData, budgetItemsData } from '@/lib/data';
 import { useLanguage } from '@/context/language-context';
 
 const goalChartData = goalsData
@@ -58,6 +58,10 @@ export function Overview() {
   const { t } = useLanguage();
   const userName = user.name.split(' ')[0];
 
+  const totalSavings = savingsHistoryData.reduce((acc, entry) => acc + entry.amount, 0);
+  const todaySaving = savingsHistoryData.find(entry => entry.date === new Date().toISOString().split('T')[0])?.amount || 0;
+
+
   return (
     <div className="grid gap-4 md:gap-8">
       <div className="flex items-center justify-between space-y-2">
@@ -75,10 +79,10 @@ export function Overview() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              PKR {dailySavingData.currentBalance.toLocaleString()}
+              PKR {totalSavings.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">
-              +PKR {dailySavingData.dailyAmount.toLocaleString()} {t('dashboard.today')}
+              +PKR {todaySaving.toLocaleString()} {t('dashboard.today')}
             </p>
           </CardContent>
         </Card>
@@ -185,3 +189,5 @@ export function Overview() {
     </div>
   );
 }
+
+    
