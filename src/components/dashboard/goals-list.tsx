@@ -29,7 +29,7 @@ function GoalCard({ goal, onDelete }: { goal: Goal; onDelete: (id: string) => vo
 
   return (
     <Card className="flex flex-col">
-      <CardHeader className="flex flex-row items-start gap-4 space-y-0">
+      <CardHeader className="flex flex-row items-start gap-4 space-y-0 relative">
         <div className="flex-shrink-0">
             <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
                 <goal.icon className="w-6 h-6 text-primary" />
@@ -39,18 +39,19 @@ function GoalCard({ goal, onDelete }: { goal: Goal; onDelete: (id: string) => vo
           <CardTitle>{goal.name}</CardTitle>
           <CardDescription>{t('goals.goalTarget').replace('{amount}', goal.targetAmount.toLocaleString())}</CardDescription>
         </div>
-        <div className="flex flex-col items-end gap-2">
+        <div className="flex flex-col items-end gap-1">
           {getStatusChip()}
-          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onDelete(goal.id)}>
+        </div>
+        <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-6 w-6" onClick={() => onDelete(goal.id)}>
               <Trash2 className="h-4 w-4 text-destructive" />
               <span className="sr-only">Delete Goal</span>
-          </Button>
-        </div>
+        </Button>
       </CardHeader>
-      <CardContent className="flex-grow">
-        <p className="text-xs text-muted-foreground">
-          {Math.round(progress)}% {t('goals.goalProgress')}
-        </p>
+      <CardContent className="flex-grow pt-2">
+        <div className="text-xs text-muted-foreground flex justify-between">
+            <span>PKR {goal.savedAmount.toLocaleString()}</span>
+            <span>{Math.round(progress)}%</span>
+        </div>
       </CardContent>
       <CardFooter>
         <Progress value={progress} className="h-2 flex-1" />
