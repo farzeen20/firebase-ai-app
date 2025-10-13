@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -314,7 +313,9 @@ export function SettingsView() {
                     </DialogHeader>
                     {twoFaConfig && (
                         <div className="flex flex-col items-center gap-4 py-4">
-                            <Image src={twoFaConfig.qr} alt="2FA QR Code" width={200} height={200} />
+                            <div className="relative w-48 h-48">
+                                <Image src={twoFaConfig.qr} alt="2FA QR Code" fill className="object-contain" />
+                            </div>
                             <p className="text-sm text-muted-foreground">Or enter this key manually:</p>
                             <p className="font-mono bg-secondary p-2 rounded-md">{twoFaConfig.secret}</p>
                             <div className="grid w-full max-w-sm items-center gap-1.5">
@@ -339,4 +340,5 @@ export function SettingsView() {
 
         </div>
     );
-}
+
+    
