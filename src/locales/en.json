@@ -44,6 +44,7 @@
       "changePassword": "Change Password",
       "currentPassword": "Current Password",
       "newPassword": "New Password",
+      "confirmNewPassword": "Confirm New Password",
       "updatePassword": "Update Password"
     }
   },

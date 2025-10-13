@@ -44,6 +44,7 @@
       "changePassword": "پاس ورڈ تبدیل کریں",
       "currentPassword": "موجودہ پاس ورڈ",
       "newPassword": "نیا پاس ورڈ",
+      "confirmNewPassword": "نئے پاس ورڈ کی تصدیق کریں",
       "updatePassword": "پاس ورڈ اپ ڈیٹ کریں"
     }
   },
@@ -154,7 +155,7 @@
     "clickToUpload": "اپ لوڈ کرنے کے لیے کلک کریں",
     "fileTypes": "PNG, JPG, یا WEBP",
     "analyzeButton": "AI سے تجزیہ کریں",
-    "analyzing": "تجزیہ کیا جا رہا ہے...",
+    "analyzing": "تجزیہ کیا جا रहा ہے...",
     "expensesTitle": "درجہ بند اخراجات",
     "expensesDescription": "ہمارے AI نے آپ کی رسید پر یہ پایا۔",
     "item": "شے",

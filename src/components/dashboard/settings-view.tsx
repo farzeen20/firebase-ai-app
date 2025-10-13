@@ -224,6 +224,7 @@ export function SettingsView() {
                                 <div className="space-y-2">
                                     <Input id="current-password" type="password" placeholder={t('settings.security.currentPassword') ?? ''}/>
                                     <Input id="new-password" type="password" placeholder={t('settings.security.newPassword') ?? ''} />
+                                    <Input id="confirm-new-password" type="password" placeholder={t('settings.security.confirmNewPassword') ?? ''} />
                                 </div>
                                 <Button className="bg-accent text-accent-foreground hover:bg-accent/90">{t('settings.security.updatePassword')}</Button>
                             </div>
