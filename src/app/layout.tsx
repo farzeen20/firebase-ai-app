@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { Toaster } from "@/components/ui/toaster"
 import { FirebaseClientProvider } from '@/firebase';
 import { LanguageProvider, useLanguage } from '@/context/language-context';
+import { useEffect, useState } from 'react';
 
 export default function RootLayout({
   children,
@@ -24,8 +25,14 @@ export default function RootLayout({
 
 function AppBody({ children }: { children: React.ReactNode }) {
   const { language } = useLanguage();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   return (
-    <html lang={language} dir={language === 'ur' ? 'rtl' : 'ltr'} suppressHydrationWarning>
+    <html lang={isClient ? language : 'en'} dir={isClient && language === 'ur' ? 'rtl' : 'ltr'} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
