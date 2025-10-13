@@ -18,11 +18,11 @@ export function CommitteesView() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     
     const [title, setTitle] = useState('');
+    const [owner, setOwner] = useState('');
     const [perMemberAmount, setPerMemberAmount] = useState('');
     const [members, setMembers] = useState('');
-    const [tenure, setTenure] = useState('');
 
-    const isFormValid = title.trim() !== '' && perMemberAmount.trim() !== '' && members.trim() !== '' && tenure.trim() !== '';
+    const isFormValid = title.trim() !== '' && owner.trim() !== '' && perMemberAmount.trim() !== '' && members.trim() !== '';
 
     const handleCreateCommittee = () => {
         if (!isFormValid) return;
@@ -30,7 +30,7 @@ export function CommitteesView() {
         const newCommittee: Committee = {
             id: `c${committees.length + 1}`,
             name: title,
-            owner: 'You', // Assuming the current user is the owner
+            owner: owner,
             members: parseInt(members, 10),
             totalPot: parseInt(perMemberAmount, 10) * parseInt(members, 10),
             myContribution: parseInt(perMemberAmount, 10),
@@ -41,9 +41,9 @@ export function CommitteesView() {
         
         // Reset form and close dialog
         setTitle('');
+        setOwner('');
         setPerMemberAmount('');
         setMembers('');
-        setTenure('');
         setIsDialogOpen(false);
     };
 
@@ -73,17 +73,17 @@ export function CommitteesView() {
                                 <Input id="title" placeholder="e.g., Office Lunch Club" value={title} onChange={(e) => setTitle(e.target.value)} />
                             </div>
                              <div className="grid gap-2">
-                                <Label htmlFor="amount">Per Member Amount (PKR)</Label>
-                                <Input id="amount" type="number" placeholder="e.g., 5000" value={perMemberAmount} onChange={(e) => setPerMemberAmount(e.target.value)} />
+                                <Label htmlFor="owner">Owner Name</Label>
+                                <Input id="owner" placeholder="e.g., Ali Baksh" value={owner} onChange={(e) => setOwner(e.target.value)} />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="grid gap-2">
-                                    <Label htmlFor="members">Number of Members</Label>
-                                    <Input id="members" type="number" placeholder="e.g., 10" value={members} onChange={(e) => setMembers(e.target.value)} />
+                                    <Label htmlFor="amount">Per Member Amount (PKR)</Label>
+                                    <Input id="amount" type="number" placeholder="e.g., 5000" value={perMemberAmount} onChange={(e) => setPerMemberAmount(e.target.value)} />
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label htmlFor="tenure">Payment Tenure</Label>
-                                    <Input id="tenure" placeholder="e.g., Monthly" value={tenure} onChange={(e) => setTenure(e.target.value)} />
+                                    <Label htmlFor="members">Number of Members</Label>
+                                    <Input id="members" type="number" placeholder="e.g., 10" value={members} onChange={(e) => setMembers(e.target.value)} />
                                 </div>
                             </div>
                         </div>
@@ -91,9 +91,9 @@ export function CommitteesView() {
                             <DialogClose asChild>
                                 <Button variant="outline" onClick={() => {
                                     setTitle('');
+                                    setOwner('');
                                     setPerMemberAmount('');
                                     setMembers('');
-                                    setTenure('');
                                 }}>Cancel</Button>
                             </DialogClose>
                             <Button onClick={handleCreateCommittee} disabled={!isFormValid}>
