@@ -22,14 +22,14 @@ function GoalCard({ goal, onDelete }: { goal: Goal; onDelete: (id: string) => vo
     switch(goal.status) {
       case 'active': return <div className="flex items-center gap-1 text-sm text-green-600"><Star className="w-4 h-4 fill-current" /> {t('goals.tabActive')}</div>;
       case 'completed': return <div className="flex items-center gap-1 text-sm text-blue-600"><CheckCircle2 className="w-4 h-4" /> {t('goals.tabCompleted')}</div>;
-      case 'paused': return <div className="flex items-center gap-1 text-sm text-gray-500"><PauseCircle className="w-4 h-4" /> Paused</div>; // Assuming no translation for paused
+      case 'paused': return <div className="flex items-center gap-1 text-sm text-gray-500"><PauseCircle className="w-4 h-4" /> Paused</div>;
       default: return null;
     }
   }
 
   return (
     <Card className="flex flex-col">
-      <CardHeader className="flex flex-row items-start gap-4 space-y-0 relative">
+      <CardHeader className="flex flex-row items-start gap-4 space-y-0">
         <div className="flex-shrink-0">
             <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
                 <goal.icon className="w-6 h-6 text-primary" />
@@ -41,20 +41,20 @@ function GoalCard({ goal, onDelete }: { goal: Goal; onDelete: (id: string) => vo
         </div>
         <div className="flex flex-col items-end gap-1">
           {getStatusChip()}
-        </div>
-        <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-6 w-6" onClick={() => onDelete(goal.id)}>
+          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onDelete(goal.id)}>
               <Trash2 className="h-4 w-4 text-destructive" />
               <span className="sr-only">Delete Goal</span>
         </Button>
+        </div>
       </CardHeader>
       <CardContent className="flex-grow pt-2">
-        <div className="text-xs text-muted-foreground flex justify-between">
+        <div className="text-sm text-muted-foreground flex justify-between">
             <span>PKR {goal.savedAmount.toLocaleString()}</span>
-            <span>{Math.round(progress)}%</span>
         </div>
       </CardContent>
-      <CardFooter>
+      <CardFooter className="items-center">
         <Progress value={progress} className="h-2 flex-1" />
+        <span className="text-xs text-muted-foreground ml-2">{Math.round(progress)}%</span>
       </CardFooter>
     </Card>
   );
