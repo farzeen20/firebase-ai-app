@@ -15,7 +15,9 @@ import { useLanguage } from '@/context/language-context';
 export function CommitteesView() {
     const { t } = useLanguage();
     const [committees, setCommittees] = useState<Committee[]>(committeesData);
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+    const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+    const [selectedCommittee, setSelectedCommittee] = useState<Committee | null>(null);
     
     const [title, setTitle] = useState('');
     const [owner, setOwner] = useState('');
@@ -44,8 +46,13 @@ export function CommitteesView() {
         setOwner('');
         setPerMemberAmount('');
         setMembers('');
-        setIsDialogOpen(false);
+        setIsCreateDialogOpen(false);
     };
+
+    const handleViewDetails = (committee: Committee) => {
+        setSelectedCommittee(committee);
+        setIsDetailsDialogOpen(true);
+    }
 
     return (
         <div className="space-y-8">
@@ -54,7 +61,7 @@ export function CommitteesView() {
                     <h1 className="text-3xl font-bold">{t('committees.title')}</h1>
                     <p className="text-muted-foreground">{t('committees.description')}</p>
                 </div>
-                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                     <DialogTrigger asChild>
                         <Button className="bg-accent text-accent-foreground hover:bg-accent/90">
                             <PlusCircle className="me-2 h-4 w-4" /> {t('committees.create')}
@@ -134,11 +141,55 @@ export function CommitteesView() {
                                 <span className="text-muted-foreground">{t('committees.nextPayout')}</span>
                                 <span className="font-semibold">{committee.nextPayout}</span>
                             </div>
-                            <Button variant="outline">{t('committees.viewDetails')}</Button>
+                            <Button variant="outline" onClick={() => handleViewDetails(committee)}>{t('committees.viewDetails')}</Button>
                         </CardFooter>
                     </Card>
                 ))}
             </div>
+
+             {/* Details Dialog */}
+            <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{selectedCommittee?.name} - Details</DialogTitle>
+                        <DialogDescription>
+                            Viewing the details of this savings committee.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {selectedCommittee && (
+                        <div className="grid gap-4 py-4">
+                            <div className="grid gap-2">
+                                <Label>Committee Title</Label>
+                                <p className="font-semibold">{selectedCommittee.name}</p>
+                            </div>
+                            <div className="grid gap-2">
+                                <Label>Owner Name</Label>
+                                <p className="font-semibold">{selectedCommittee.owner}</p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <Label>Per Member Amount (PKR)</Label>
+                                    <p className="font-semibold">{selectedCommittee.myContribution.toLocaleString()}</p>
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label>Number of Members</Label>
+                                    <p className="font-semibold">{selectedCommittee.members}</p>
+                                </div>
+                            </div>
+                             <div className="grid gap-2">
+                                <Label>Total Pot</Label>
+                                <p className="font-bold text-lg">PKR {selectedCommittee.totalPot.toLocaleString()}</p>
+                            </div>
+                        </div>
+                    )}
+                    <DialogFooter>
+                        <DialogClose asChild>
+                            <Button>Close</Button>
+                        </DialogClose>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
              <Card className="mt-8 text-center bg-secondary">
                 <CardHeader>
                     <CardTitle>{t('committees.joinTitle')}</CardTitle>
