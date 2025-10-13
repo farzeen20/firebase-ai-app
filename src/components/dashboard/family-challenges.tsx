@@ -1,20 +1,21 @@
 
 'use client';
 
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle2, Circle, Trophy } from 'lucide-react';
 import { useLanguage } from '@/context/language-context';
 import { cn } from '@/lib/utils';
 import { Badge } from '../ui/badge';
 
-const challenges = [
+const initialChallenges = [
     { id: 1, title: "Save for a Week", description: "Save money every day for 7 days in a row.", points: 20, completed: true },
     { id: 2, title: "No-Spend Day", description: "Go a full day without spending any money on non-essentials.", points: 15, completed: true },
     { id: 3, title: "Goal Starter", description: "Create your very first savings goal.", points: 10, completed: false },
     { id: 4, title: "Budget Boss", description: "Help your parents categorize a grocery receipt.", points: 25, completed: false },
 ];
 
-const badges = [
+const initialBadges = [
     { name: "Savings Starter", icon: <Trophy className="w-8 h-8 text-yellow-500" />, earned: true },
     { name: "Frugal Frog", icon: <Trophy className="w-8 h-8 text-gray-400" />, earned: true },
     { name: "Goal Getter", icon: <Trophy className="w-8 h-8 text-gray-400" />, earned: false },
@@ -23,8 +24,26 @@ const badges = [
 
 export function FamilyChallenges() {
     const { t } = useLanguage();
+    const [challenges, setChallenges] = useState(initialChallenges);
+    const [badges, setBadges] = useState(initialBadges);
+
+    const handleChallengeClick = (id: number) => {
+        setChallenges(prevChallenges =>
+            prevChallenges.map(challenge =>
+                challenge.id === id ? { ...challenge, completed: !challenge.completed } : challenge
+            )
+        );
+    };
 
     const totalPoints = challenges.reduce((sum, challenge) => challenge.completed ? sum + challenge.points : sum, 0);
+    
+    // Example logic to unlock a badge
+    const goalGetterBadge = badges.find(b => b.name === "Goal Getter");
+    const goalStarterChallenge = challenges.find(c => c.title === "Goal Starter");
+    if (goalStarterChallenge?.completed && !goalGetterBadge?.earned) {
+        setBadges(prevBadges => prevBadges.map(b => b.name === "Goal Getter" ? {...b, earned: true} : b));
+    }
+
 
     return (
         <div>
@@ -37,7 +56,17 @@ export function FamilyChallenges() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                         {challenges.map(challenge => (
-                            <div key={challenge.id} className={cn("flex items-center gap-4 p-4 rounded-lg border", challenge.completed ? "bg-primary/10 border-primary/20" : "bg-secondary/50")}>
+                            <div 
+                                key={challenge.id} 
+                                className={cn(
+                                    "flex items-center gap-4 p-4 rounded-lg border transition-colors cursor-pointer", 
+                                    challenge.completed ? "bg-primary/10 border-primary/20" : "bg-secondary/50 hover:bg-secondary"
+                                )}
+                                onClick={() => handleChallengeClick(challenge.id)}
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleChallengeClick(challenge.id)}
+                            >
                                 {challenge.completed ? <CheckCircle2 className="h-6 w-6 text-primary flex-shrink-0" /> : <Circle className="h-6 w-6 text-muted-foreground flex-shrink-0" />}
                                 <div className="flex-grow">
                                     <p className="font-semibold">{challenge.title}</p>
@@ -74,6 +103,3 @@ export function FamilyChallenges() {
         </div>
     );
 }
-
-
-    

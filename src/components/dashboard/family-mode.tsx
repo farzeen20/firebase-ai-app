@@ -14,24 +14,29 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { FamilyMember } from '@/lib/definitions';
+import { Switch } from '../ui/switch';
 
 export function FamilyMode() {
     const { t } = useLanguage();
     const [members, setMembers] = useState<FamilyMember[]>(familyData);
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [isAddMemberDialogOpen, setIsAddMemberDialogOpen] = useState(false);
+    const [isContributeDialogOpen, setIsContributeDialogOpen] = useState(false);
+    const [isControlsDialogOpen, setIsControlsDialogOpen] = useState(false);
+    const [contributionAmount, setContributionAmount] = useState('');
 
-    // Form state
+    // Add Member Form state
     const [name, setName] = useState('');
     const [role, setRole] = useState<'parent' | 'child' | ''>('');
 
     const parents = members.filter(m => m.role === 'parent');
     const children = members.filter(m => m.role === 'child');
 
-    const sharedGoal = {
+    const [sharedGoal, setSharedGoal] = useState({
         name: "Family Vacation to Murree",
         targetAmount: 200000,
         savedAmount: 120000
-    };
+    });
+    
     const progress = (sharedGoal.savedAmount / sharedGoal.targetAmount) * 100;
 
     const handleAddMember = () => {
@@ -49,7 +54,19 @@ export function FamilyMode() {
         // Reset form
         setName('');
         setRole('');
-        setIsDialogOpen(false);
+        setIsAddMemberDialogOpen(false);
+    }
+    
+    const handleContribute = () => {
+        const amount = parseFloat(contributionAmount);
+        if (isNaN(amount) || amount <= 0) return;
+
+        setSharedGoal(prev => ({
+            ...prev,
+            savedAmount: prev.savedAmount + amount
+        }));
+        setContributionAmount('');
+        setIsContributeDialogOpen(false);
     }
 
     return (
@@ -59,7 +76,7 @@ export function FamilyMode() {
                     <h1 className="text-3xl font-bold">{t('family.title')}</h1>
                     <p className="text-muted-foreground">{t('family.description')}</p>
                 </div>
-                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <Dialog open={isAddMemberDialogOpen} onOpenChange={setIsAddMemberDialogOpen}>
                     <DialogTrigger asChild>
                          <Button className="bg-accent text-accent-foreground hover:bg-accent/90">
                             <UserPlus className="me-2 h-4 w-4" /> {t('family.addMember')}
@@ -110,9 +127,33 @@ export function FamilyMode() {
                         <CardContent className="space-y-4">
                             <div className="flex items-center justify-between">
                                 <h3 className="text-xl font-semibold">{sharedGoal.name}</h3>
-                                <Button variant="outline">
-                                    <PlusCircle className="me-2 h-4 w-4" /> {t('family.contribute')}
-                                </Button>
+                                <Dialog open={isContributeDialogOpen} onOpenChange={setIsContributeDialogOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button>
+                                            <PlusCircle className="me-2 h-4 w-4" /> {t('family.contribute')}
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                        <DialogHeader>
+                                            <DialogTitle>Contribute to Family Goal</DialogTitle>
+                                            <DialogDescription>
+                                                How much would you like to contribute to &quot;{sharedGoal.name}&quot;?
+                                            </DialogDescription>
+                                        </DialogHeader>
+                                        <div className="grid gap-4 py-4">
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="contribution-amount">Amount (PKR)</Label>
+                                                <Input id="contribution-amount" type="number" placeholder="e.g., 5000" value={contributionAmount} onChange={(e) => setContributionAmount(e.target.value)} />
+                                            </div>
+                                        </div>
+                                        <DialogFooter>
+                                            <DialogClose asChild>
+                                                <Button variant="outline">Cancel</Button>
+                                            </DialogClose>
+                                            <Button onClick={handleContribute} disabled={!contributionAmount || parseFloat(contributionAmount) <= 0}>Contribute</Button>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
                             </div>
                              <div className="space-y-2">
                                 <div className="flex justify-between text-sm">
@@ -183,12 +224,49 @@ export function FamilyMode() {
                         </div>
                     </CardContent>
                     <CardFooter>
-                         <Button variant="outline" className="w-full">Manage Controls</Button>
+                         <Dialog open={isControlsDialogOpen} onOpenChange={setIsControlsDialogOpen}>
+                            <DialogTrigger asChild>
+                                <Button variant="outline" className="w-full">
+                                    <Shield className="me-2 h-4 w-4" /> Manage Controls
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>Parental Controls</DialogTitle>
+                                    <DialogDescription>
+                                        Manage savings and spending controls for your children.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-6 py-4">
+                                    <div className="flex items-center justify-between rounded-lg border p-3">
+                                        <div className="space-y-0.5">
+                                            <Label htmlFor="spending-limit">Set spending limits</Label>
+                                            <p className="text-xs text-muted-foreground">
+                                                Children will need approval for spending over a set amount.
+                                            </p>
+                                        </div>
+                                        <Switch id="spending-limit" />
+                                    </div>
+                                    <div className="flex items-center justify-between rounded-lg border p-3">
+                                        <div className="space-y-0.5">
+                                            <Label htmlFor="goal-approval">Goal approval</Label>
+                                            <p className="text-xs text-muted-foreground">
+                                                Require parental approval for new savings goals.
+                                            </p>
+                                        </div>
+                                        <Switch id="goal-approval" defaultChecked />
+                                    </div>
+                                </div>
+                                <DialogFooter>
+                                    <DialogClose asChild>
+                                        <Button>Done</Button>
+                                    </DialogClose>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
                     </CardFooter>
                 </Card>
             </div>
         </div>
     );
 }
-
-    
