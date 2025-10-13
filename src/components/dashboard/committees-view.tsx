@@ -141,7 +141,7 @@ export function CommitteesView() {
                                 <span className="text-muted-foreground">{t('committees.nextPayout')}</span>
                                 <span className="font-semibold">{committee.nextPayout}</span>
                             </div>
-                            <Button variant="outline" onClick={() => handleViewDetails(committee)}>{t('committees.viewDetails')}</Button>
+                            <Button onClick={() => handleViewDetails(committee)}>{t('committees.viewDetails')}</Button>
                         </CardFooter>
                     </Card>
                 ))}
