@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -7,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Trash2 } from 'lucide-react';
 import { useLanguage } from '@/context/language-context';
 import type { SavingEntry } from '@/lib/definitions';
 import { savingsHistoryData } from '@/lib/data';
@@ -32,6 +31,10 @@ export function DailySavings() {
     setNewAmount('');
   };
   
+  const handleDeleteSaving = (id: string) => {
+    setSavings(prev => prev.filter(entry => entry.id !== id));
+  };
+
   const weeklyTotal = savings.reduce((total, entry) => {
     const entryDate = new Date(entry.date);
     const today = new Date();
@@ -69,6 +72,7 @@ export function DailySavings() {
                         <TableRow>
                             <TableHead>Date</TableHead>
                             <TableHead className="text-right">Amount (PKR)</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -76,10 +80,16 @@ export function DailySavings() {
                             <TableRow key={entry.id}>
                                 <TableCell>{format(new Date(entry.date), 'PPP')}</TableCell>
                                 <TableCell className="text-right font-medium">{entry.amount.toLocaleString()}</TableCell>
+                                <TableCell className="text-right">
+                                    <Button variant="ghost" size="icon" onClick={() => handleDeleteSaving(entry.id)}>
+                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                        <span className="sr-only">Delete</span>
+                                    </Button>
+                                </TableCell>
                             </TableRow>
                         )) : (
                             <TableRow>
-                                <TableCell colSpan={2} className="text-center h-24 text-muted-foreground">
+                                <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">
                                     No savings logged for this week yet.
                                 </TableCell>
                             </TableRow>
@@ -88,7 +98,7 @@ export function DailySavings() {
                     <TableFooter>
                         <TableRow>
                             <TableHead>Weekly Total</TableHead>
-                            <TableHead className="text-right text-lg font-bold">
+                            <TableHead className="text-right text-lg font-bold" colSpan={2}>
                                 PKR {weeklyTotal.toLocaleString()}
                             </TableHead>
                         </TableRow>
