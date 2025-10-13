@@ -29,15 +29,17 @@ function GoalCard({ goal, onDelete }: { goal: Goal; onDelete: (id: string) => vo
 
   return (
     <Card className="flex flex-col">
-      <CardHeader className="flex flex-row items-start gap-4 space-y-0">
-        <div className="flex-shrink-0">
-            <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                <goal.icon className="w-6 h-6 text-primary" />
+      <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+        <div className="flex items-start gap-4">
+            <div className="flex-shrink-0">
+                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <goal.icon className="w-6 h-6 text-primary" />
+                </div>
             </div>
-        </div>
-        <div className="flex-1">
-          <CardTitle>{goal.name}</CardTitle>
-          <CardDescription>{t('goals.goalTarget').replace('{amount}', goal.targetAmount.toLocaleString())}</CardDescription>
+            <div className="flex-1">
+              <CardTitle>{goal.name}</CardTitle>
+              <CardDescription>{t('goals.goalTarget').replace('{amount}', goal.targetAmount.toLocaleString())}</CardDescription>
+            </div>
         </div>
         <div className="flex flex-col items-end gap-1">
           {getStatusChip()}
@@ -48,9 +50,6 @@ function GoalCard({ goal, onDelete }: { goal: Goal; onDelete: (id: string) => vo
         </div>
       </CardHeader>
       <CardContent className="flex-grow pt-2">
-        <div className="text-sm text-muted-foreground flex justify-between">
-            <span>PKR {goal.savedAmount.toLocaleString()}</span>
-        </div>
       </CardContent>
       <CardFooter className="items-center">
         <Progress value={progress} className="h-2 flex-1" />
