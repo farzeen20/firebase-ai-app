@@ -18,6 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { doc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { sendEmail } from '@/ai/flows/send-email';
 
 const profileSchema = z.object({
     firstName: z.string().min(1, 'First name is required'),
@@ -43,6 +44,8 @@ export function SettingsView() {
     const [is2faDialogOpen, setIs2faDialogOpen] = useState(false);
     const [verificationCode, setVerificationCode] = useState('');
     const [isCodeSent, setIsCodeSent] = useState(false);
+    const [sentCode, setSentCode] = useState('');
+
 
     const userDocRef = useMemoFirebase(() => {
         if (!firestore || !user?.uid) return null;
@@ -80,7 +83,6 @@ export function SettingsView() {
         }
 
         const dataToSave = { ...data };
-        delete dataToSave.twoFAEnabled; // Don't save 2FA enabled status directly from this form
         
         setDocumentNonBlocking(userDocRef, dataToSave, { merge: true });
 
@@ -108,20 +110,44 @@ export function SettingsView() {
         }
     };
     
-    const handleSendVerificationCode = () => {
-        // In a real app, this would trigger a backend service to send an email.
-        // For this prototype, we'll just simulate it.
-        setIsCodeSent(true);
-        toast({
-            title: 'Code Sent!',
-            description: `A verification code has been sent to ${user?.email}.`,
-        });
+    const handleSendVerificationCode = async () => {
+        if (!user?.email) {
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'User email not found.',
+            });
+            return;
+        }
+
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        setSentCode(code);
+    
+        try {
+            await sendEmail({
+                to: user.email,
+                subject: 'Your Bachat Buddy 2FA Code',
+                body: `Your verification code is: <strong>${code}</strong>`
+            });
+    
+            setIsCodeSent(true);
+            toast({
+                title: 'Code Sent!',
+                description: `A verification code has been sent to ${user.email}.`,
+            });
+        } catch (error) {
+            console.error('Failed to send verification email:', error);
+            toast({
+                variant: 'destructive',
+                title: 'Failed to Send Code',
+                description: 'There was a problem sending the verification email. Please try again.',
+            });
+        }
     };
     
+    
     const handleVerify2fa = () => {
-        // In a real app, this would verify the code against a stored value.
-        // For this prototype, any 6-digit code is accepted.
-        if (verificationCode.length === 6 && /^\d+$/.test(verificationCode)) {
+        if (verificationCode === sentCode) {
             if (!userDocRef) return;
             setDocumentNonBlocking(userDocRef, { twoFAEnabled: true }, { merge: true });
             form.setValue('twoFAEnabled', true);
@@ -134,7 +160,7 @@ export function SettingsView() {
             toast({
                 variant: 'destructive',
                 title: 'Invalid Code',
-                description: 'Please enter a valid 6-digit verification code.',
+                description: 'The verification code is incorrect. Please try again.',
             });
         }
     };
