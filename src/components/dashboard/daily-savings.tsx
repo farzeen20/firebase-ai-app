@@ -27,18 +27,17 @@ export function DailySavings() {
     return collection(firestore, 'users', user.uid, 'dailySavings');
   }, [firestore, user?.uid]);
 
-  const today = new Date();
-  const oneWeekAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6);
-
   const recentSavingsQuery = useMemoFirebase(() => {
     if (!savingsCollectionRef) return null;
+    const today = new Date();
+    const oneWeekAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6);
     return query(
       savingsCollectionRef,
       where('createdAt', '>=', oneWeekAgo),
       where('createdAt', '<=', today),
       orderBy('createdAt', 'desc')
     );
-  }, [savingsCollectionRef, oneWeekAgo, today]);
+  }, [savingsCollectionRef]);
 
 
   const { data: savings, isLoading } = useCollection<SavingEntry>(recentSavingsQuery);
