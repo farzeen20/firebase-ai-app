@@ -1,320 +1,346 @@
 /**
  * @file Firebase Security Rules for Firestore.
  *
- * @core_philosophy This ruleset enforces a strict user-ownership model for personal data
- * and uses membership-based access control for collaborative data like groups and families.
- * Public read access is granted for certain collections like literacy topics.
+ * @Core Philosophy: This ruleset enforces a strict user-ownership model for most data, with shared access controls for collaborative entities like Groups and Families. Public read access is granted to the LiteracyTopics collection.
  *
- * @data_structure
- * - /users/{userId}: Stores user data, owned by the user.
- * - /users/{userId}/profile: Stores user profile data, owned by the user.
- * - /users/{userId}/dailySavings/{dailySavingId}: Stores daily savings data, owned by the user.
- * - /users/{userId}/goals/{goalId}: Stores user goals, owned by the user.
- * - /groups/{groupId}: Stores group data, with ownerId and members map for access control.
- * - /groups/{groupId}/contributions/{contributionId}: Stores group contributions, access controlled by group membership.
- * - /groups/{groupId}/payouts/{payoutId}: Stores group payouts, access controlled by group membership.
- * - /users/{userId}/budgets/{budgetId}: Stores user budgets, owned by the user.
- * - /users/{userId}/budgets/{budgetId}/budgetItems/{budgetItemId}: Stores budget items, owned by the user.
- * - /users/{userId}/budgets/{budgetId}/bills/{billId}: Stores bills, owned by the user.
- * - /literacyTopics/{topicId}: Stores financial literacy topics, publicly readable.
- * - /families/{familyId}: Stores family data, with parentIds and childIds maps for access control.
- * - /families/{familyId}/goals/{goalId}: Stores family goals, access controlled by family membership.
- * - /users/{userId}/notifications/{notificationId}: Stores user notifications, owned by the user.
- * - /users/{userId}/userLiteracyTopics/{userLiteracyTopicId}: Stores user literacy topic interactions, owned by the user.
+ * @Data Structure:
+ *   - /users/{userId}: Stores user information; only accessible by the user themselves.
+ *   - /users/{userId}/profile: Stores profile information; only accessible by the user themselves.
+ *   - /users/{userId}/dailySavings/{dailySavingId}: Stores daily savings; only accessible by the user themselves.
+ *   - /users/{userId}/goals/{goalId}: Stores saving goals; only accessible by the user themselves.
+ *   - /groups/{groupId}: Stores group information with owner and member lists. Accessible to group members.
+ *   - /groups/{groupId}/contributions/{contributionId}: Stores group contributions; accessible to group members.
+ *   - /groups/{groupId}/payouts/{payoutId}: Stores group payouts; accessible to group members.
+ *   - /users/{userId}/budgets/{budgetId}: Stores budget information; only accessible by the user themselves.
+ *   - /users/{userId}/budgets/{budgetId}/budgetItems/{budgetItemId}: Stores budget items; only accessible by the user themselves.
+ *   - /users/{userId}/budgets/{budgetId}/bills/{billId}: Stores bills; only accessible by the user themselves.
+ *   - /literacyTopics/{topicId}: Stores financial literacy topics; publicly readable.
+ *   - /families/{familyId}: Stores family information with parent and child lists. Accessible to family members.
+ *   - /families/{familyId}/goals/{goalId}: Stores family goals; accessible to family members.
+ *   - /users/{userId}/notifications/{notificationId}: Stores notifications; only accessible by the user themselves.
+ *   - /users/{userId}/userLiteracyTopics/{userLiteracyTopicId}: Stores user literacy topics; only accessible by the user themselves.
  *
- * @key_security_decisions
- * - User listing is disallowed.
- * - Public read access is granted to the /literacyTopics collection.
- * - Group and Family access is managed via explicit membership maps on the documents.
- * - Default security posture is strict: if a relationship is ambiguous, access is denied.
+ * @Key Security Decisions:
+ *   - User listing is disallowed to protect privacy.
+ *   - Most collections enforce strict user ownership.
+ *   - Collaborative entities use denormalized member lists/maps for efficient authorization.
+ *   - Public read access is granted to the LiteracyTopics collection.
  *
- * @denormalization_for_authorization
- * - Groups: The `members` map is denormalized into `Contribution` and `Payout` documents to avoid costly `get()` calls in security rules.
- * - Families: The `parentIds` and `childIds` maps are used for efficient security rule checks.
+ * @Denormalization for Authorization:
+ *   - Group documents include a `members` map for fast membership checks.
+ *   - Contribution and Payout documents denormalize the `members` map from their parent Group for authorization independence.
+ *   - Family documents include `parentIds` and `childIds` maps for fast family membership checks.
+ *
+ * @Structural Segregation: Private user data is stored under /users/{userId} to maintain a consistent security posture.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Checks if the user is signed in.
-     * @return {boolean} True if the user is signed in, false otherwise.
+     * @description: Controls access to user documents.
+     * @path: /users/{userId}
+     * @allow: (get) User with ID 'bl1yCS7wS3e59LveSQmudEhopSA3' can read their own document.
+     * @allow: (create) User with ID 'bl1yCS7wS3e59LveSQmudEhopSA3' can create their own document.
+     * @deny: (get) User with ID 'otherUserId' cannot read the document of user 'bl1yCS7wS3e59LveSQmudEhopSA3'.
+     * @deny: (create) User with ID 'otherUserId' cannot create a document with ID 'bl1yCS7wS3e59LveSQmudEhopSA3'.
+     * @principle: Enforces document ownership, allowing users to only access their own data.
+     */
+    match /users/{userId} {
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isOwner(userId);
+      allow delete: if isSignedIn() && isOwner(userId);
+    }
+
+    /**
+     * @description: Controls access to user profile documents.
+     * @path: /users/{userId}/profile
+     * @allow: (create) User with ID 'bl1yCS7wS3e59LveSQmudEhopSA3' can create their profile.
+     * @allow: (get) User with ID 'bl1yCS7wS3e59LveSQmudEhopSA3' can read their own profile.
+     * @deny: (create) User with ID 'otherUserId' cannot create a profile for user 'bl1yCS7wS3e59LveSQmudEhopSA3'.
+     * @deny: (get) User with ID 'otherUserId' cannot read the profile of user 'bl1yCS7wS3e59LveSQmudEhopSA3'.
+     * @principle: Enforces document ownership, allowing users to only access their own profile.
+     */
+    match /users/{userId}/profile {
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isOwner(userId);
+      allow delete: if isSignedIn() && isOwner(userId);
+    }
+
+    /**
+     * @description: Controls access to daily saving documents.
+     * @path: /users/{userId}/dailySavings/{dailySavingId}
+     * @allow: (create) User with ID 'bl1yCS7wS3e59LveSQmudEhopSA3' can create a daily saving document.
+     * @allow: (get) User with ID 'bl1yCS7wS3e59LveSQmudEhopSA3' can read their own daily saving document.
+     * @deny: (create) User with ID 'otherUserId' cannot create a daily saving document for user 'bl1yCS7wS3e59LveSQmudEhopSA3'.
+     * @deny: (get) User with ID 'otherUserId' cannot read the daily saving document of user 'bl1yCS7wS3e59LveSQmudEhopSA3'.
+     * @principle: Enforces document ownership, allowing users to only access their own daily savings.
+     */
+    match /users/{userId}/dailySavings/{dailySavingId} {
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isOwner(userId);
+      allow delete: if isSignedIn() && isOwner(userId);
+    }
+
+    /**
+     * @description: Controls access to goal documents.
+     * @path: /users/{userId}/goals/{goalId}
+     * @allow: (create) User with ID 'bl1yCS7wS3e59LveSQmudEhopSA3' can create a goal document.
+     * @allow: (get) User with ID 'bl1yCS7wS3e59LveSQmudEhopSA3' can read their own goal document.
+     * @deny: (create) User with ID 'otherUserId' cannot create a goal document for user 'bl1yCS7wS3e59LveSQmudEhopSA3'.
+     * @deny: (get) User with ID 'otherUserId' cannot read the goal document of user 'bl1yCS7wS3e59LveSQmudEhopSA3'.
+     * @principle: Enforces document ownership, allowing users to only access their own goals.
+     */
+    match /users/{userId}/goals/{goalId} {
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isOwner(userId);
+      allow delete: if isSignedIn() && isOwner(userId);
+    }
+
+    /**
+     * @description: Controls access to group documents.
+     * @path: /groups/{groupId}
+     * @allow: (get) User who is a member of the group can read the group document.
+     * @allow: (create) User can create a group document if the ownerId matches their user ID.
+     * @deny: (get) User who is not a member of the group cannot read the group document.
+     * @principle: Enforces group membership for read access and ownership for create access.
+     */
+    match /groups/{groupId} {
+      allow get: if isSignedIn() && isGroupMember(groupId);
+      allow list: if false;
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update: if isSignedIn() && isGroupOwner(groupId);
+      allow delete: if isSignedIn() && isGroupOwner(groupId);
+    }
+
+    /**
+     * @description: Controls access to contribution documents within a group.
+     * @path: /groups/{groupId}/contributions/{contributionId}
+     * @allow: (create) User who is a member of the group can create a contribution document.
+     * @allow: (get) User who is a member of the group can read a contribution document.
+     * @deny: (create) User who is not a member of the group cannot create a contribution document.
+     * @deny: (get) User who is not a member of the group cannot read a contribution document.
+     * @principle: Enforces group membership for access to contribution documents.
+     */
+    match /groups/{groupId}/contributions/{contributionId} {
+      allow get: if isSignedIn() && isGroupMember(groupId);
+      allow list: if false;
+      allow create: if isSignedIn() && isGroupMember(groupId);
+      allow update: if isSignedIn() && isGroupOwner(groupId);
+      allow delete: if isSignedIn() && isGroupOwner(groupId);
+    }
+
+    /**
+     * @description: Controls access to payout documents within a group.
+     * @path: /groups/{groupId}/payouts/{payoutId}
+     * @allow: (create) User who is a member of the group can create a payout document.
+     * @allow: (get) User who is a member of the group can read a payout document.
+     * @deny: (create) User who is not a member of the group cannot create a payout document.
+     * @deny: (get) User who is not a member of the group cannot read a payout document.
+     * @principle: Enforces group membership for access to payout documents.
+     */
+    match /groups/{groupId}/payouts/{payoutId} {
+      allow get: if isSignedIn() && isGroupMember(groupId);
+       allow list: if false;
+      allow create: if isSignedIn() && isGroupMember(groupId);
+      allow update: if isSignedIn() && isGroupOwner(groupId);
+      allow delete: if isSignedIn() && isGroupOwner(groupId);
+    }
+
+    /**
+     * @description: Controls access to budget documents.
+     * @path: /users/{userId}/budgets/{budgetId}
+     * @allow: (create) User with ID 'bl1yCS7wS3e59LveSQmudEhopSA3' can create a budget document.
+     * @allow: (get) User with ID 'bl1yCS7wS3e59LveSQmudEhopSA3' can read their own budget document.
+     * @deny: (create) User with ID 'otherUserId' cannot create a budget document for user 'bl1yCS7wS3e59LveSQmudEhopSA3'.
+     * @deny: (get) User with ID 'otherUserId' cannot read the budget document of user 'bl1yCS7wS3e59LveSQmudEhopSA3'.
+     * @principle: Enforces document ownership, allowing users to only access their own budgets.
+     */
+    match /users/{userId}/budgets/{budgetId} {
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isOwner(userId);
+      allow delete: if isSignedIn() && isOwner(userId);
+    }
+
+    /**
+     * @description: Controls access to budget item documents.
+     * @path: /users/{userId}/budgets/{budgetId}/budgetItems/{budgetItemId}
+     * @allow: (create) User with ID 'bl1yCS7wS3e59LveSQmudEhopSA3' can create a budget item document.
+     * @allow: (get) User with ID 'bl1yCS7wS3e59LveSQmudEhopSA3' can read their own budget item document.
+     * @deny: (create) User with ID 'otherUserId' cannot create a budget item document for user 'bl1yCS7wS3e59LveSQmudEhopSA3'.
+     * @deny: (get) User with ID 'otherUserId' cannot read the budget item document of user 'bl1yCS7wS3e59LveSQmudEhopSA3'.
+     * @principle: Enforces document ownership, allowing users to only access their own budget items.
+     */
+    match /users/{userId}/budgets/{budgetId}/budgetItems/{budgetItemId} {
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isOwner(userId);
+      allow delete: if isSignedIn() && isOwner(userId);
+    }
+
+    /**
+     * @description: Controls access to bill documents.
+     * @path: /users/{userId}/budgets/{budgetId}/bills/{billId}
+     * @allow: (create) User with ID 'bl1yCS7wS3e59LveSQmudEhopSA3' can create a bill document.
+     * @allow: (get) User with ID 'bl1yCS7wS3e59LveSQmudEhopSA3' can read their own bill document.
+     * @deny: (create) User with ID 'otherUserId' cannot create a bill document for user 'bl1yCS7wS3e59LveSQmudEhopSA3'.
+     * @deny: (get) User with ID 'otherUserId' cannot read the bill document of user 'bl1yCS7wS3e59LveSQmudEhopSA3'.
+     * @principle: Enforces document ownership, allowing users to only access their own bills.
+     */
+    match /users/{userId}/budgets/{budgetId}/bills/{billId} {
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isOwner(userId);
+      allow delete: if isSignedIn() && isOwner(userId);
+    }
+
+    /**
+     * @description: Controls access to literacy topic documents.
+     * @path: /literacyTopics/{topicId}
+     * @allow: (get) Any user can read a literacy topic document.
+     * @principle: Allows public read access to literacy topics.
+     */
+    match /literacyTopics/{topicId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if false; // TODO: Add admin validation if needed
+      allow update: if false; // TODO: Add admin validation if needed
+      allow delete: if false; // TODO: Add admin validation if needed
+    }
+
+    /**
+     * @description: Controls access to family documents.
+     * @path: /families/{familyId}
+     * @allow: (get) User who is a member of the family can read the family document.
+     * @allow: (create) User can create a family document.
+     * @deny: (get) User who is not a member of the family cannot read the family document.
+     * @principle: Enforces family membership for read access.
+     */
+    match /families/{familyId} {
+      allow get: if isSignedIn() && isFamilyMember(familyId);
+      allow list: if false;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && isFamilyParent(familyId);
+      allow delete: if isSignedIn() && isFamilyParent(familyId);
+    }
+
+     /**
+      * @description: Controls access to family goal documents.
+      * @path: /families/{familyId}/goals/{goalId}
+      * @allow: (get) User who is a member of the family can read the family goal document.
+      * @allow: (create) User who is a member of the family can create the family goal document.
+      * @deny: (get) User who is not a member of the family cannot read the family goal document.
+      * @principle: Enforces family membership for access to family goal documents.
+      */
+    match /families/{familyId}/goals/{goalId} {
+      allow get: if isSignedIn() && isFamilyMember(familyId);
+      allow list: if false;
+      allow create: if isSignedIn() && isFamilyMember(familyId);
+      allow update: if isSignedIn() && isFamilyParent(familyId);
+      allow delete: if isSignedIn() && isFamilyParent(familyId);
+    }
+
+    /**
+     * @description: Controls access to notification documents.
+     * @path: /users/{userId}/notifications/{notificationId}
+     * @allow: (create) User with ID 'bl1yCS7wS3e59LveSQmudEhopSA3' can create a notification document.
+     * @allow: (get) User with ID 'bl1yCS7wS3e59LveSQmudEhopSA3' can read their own notification document.
+     * @deny: (create) User with ID 'otherUserId' cannot create a notification document for user 'bl1yCS7wS3e59LveSQmudEhopSA3'.
+     * @deny: (get) User with ID 'otherUserId' cannot read the notification document of user 'bl1yCS7wS3e59LveSQmudEhopSA3'.
+     * @principle: Enforces document ownership, allowing users to only access their own notifications.
+     */
+    match /users/{userId}/notifications/{notificationId} {
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isOwner(userId);
+      allow delete: if isSignedIn() && isOwner(userId);
+    }
+
+    /**
+     * @description: Controls access to user literacy topic documents.
+     * @path: /users/{userId}/userLiteracyTopics/{userLiteracyTopicId}
+     * @allow: (create) User with ID 'bl1yCS7wS3e59LveSQmudEhopSA3' can create a user literacy topic document.
+     * @allow: (get) User with ID 'bl1yCS7wS3e59LveSQmudEhopSA3' can read their own user literacy topic document.
+     * @deny: (create) User with ID 'otherUserId' cannot create a user literacy topic document for user 'bl1yCS7wS3e59LveSQmudEhopSA3'.
+     * @deny: (get) User with ID 'otherUserId' cannot read the user literacy topic document of user 'bl1yCS7wS3e59LveSQmudEhopSA3'.
+     * @principle: Enforces document ownership, allowing users to only access their own user literacy topics.
+     */
+    match /users/{userId}/userLiteracyTopics/{userLiteracyTopicId} {
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isOwner(userId);
+      allow delete: if isSignedIn() && isOwner(userId);
+    }
+
+    // --- Helper Functions ---
+
+    /**
+     * @description: Checks if the user is signed in.
      */
     function isSignedIn() {
       return request.auth != null;
     }
 
     /**
-     * @description Checks if the authenticated user's UID matches the provided userId.
-     * @param {string} userId The user ID to compare against.
-     * @return {boolean} True if the user is the owner, false otherwise.
+     * @description: Checks if the authenticated user's ID matches the provided user ID.
+     * @param {string} userId - The user ID to compare against.
      */
     function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+      return request.auth.uid == userId;
     }
 
     /**
-     * @description Checks if the authenticated user is the owner of the existing document.
-     * @param {string} userId The user ID to compare against.
-     * @return {boolean} True if the user is the owner and the document exists, false otherwise.
+     * @description: Checks if the authenticated user's ID matches the provided user ID and the resource exists.
+     * @param {string} userId - The user ID to compare against.
      */
     function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
+      return isOwner(userId) && resource != null;
     }
 
     /**
-     * @description Checks if the authenticated user is a member of the group.
-     * @param {map} members The map of member IDs to check against.
-     * @return {boolean} True if the user is a member, false otherwise.
+     * @description: Checks if the authenticated user is a member of the specified group.
+     * @param {string} groupId - The ID of the group to check.
      */
-    function isGroupMember(members) {
-      return isSignedIn() && request.auth.uid in members;
+    function isGroupMember(groupId) {
+        return get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds[request.auth.uid] == true;
     }
 
     /**
-     * @description Checks if the authenticated user is a parent or child of the family.
-     * @param {map} parentIds The map of parent IDs to check against.
-     * @param {map} childIds The map of child IDs to check against.
-     * @return {boolean} True if the user is a parent or child, false otherwise.
+     * @description: Checks if the authenticated user is the owner of the specified group.
+     * @param {string} groupId - The ID of the group to check.
      */
-    function isFamilyMember(parentIds, childIds) {
-      return isSignedIn() && (request.auth.uid in parentIds || request.auth.uid in childIds);
+    function isGroupOwner(groupId) {
+      return get(/databases/$(database)/documents/groups/$(groupId)).data.ownerId == request.auth.uid;
     }
 
     /**
-     * @description Rules for the /users/{userId} collection.
-     * @path /users/{userId}
-     * @allow (create) - If the user is creating their own document (isOwner(userId)).
-     * @allow (get, update, delete) - If the user is the owner of the document (isOwner(userId)).
-     * @deny (create) - If the user is trying to create a document for another user.
-     * @deny (get, update, delete) - If the user is not the owner of the document.
-     * @principle Enforces document ownership for writes and restricts access to a user's own data tree.
+     * @description: Checks if the authenticated user is a member of the specified family (either parent or child).
+     * @param {string} familyId - The ID of the family to check.
      */
-    match /users/{userId} {
-      allow get: if false;
-      allow list: if false; // User listing is not allowed.
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+    function isFamilyMember(familyId) {
+      return (get(/databases/$(database)/documents/families/$(familyId)).data.parentIds[request.auth.uid] == true) || (get(/databases/$(database)/documents/families/$(familyId)).data.childIds[request.auth.uid] == true);
     }
-
+    
     /**
-     * @description Rules for the /users/{userId}/profile document.
-     * @path /users/{userId}/profile
-     * @allow (create, get, update, delete) - If the user is the owner of the profile (isOwner(userId)).
-     * @deny (create, get, update, delete) - If the user is not the owner of the profile.
-     * @principle Enforces document ownership for all operations on user profiles.
+     * @description: Checks if the authenticated user is a parent of the specified family.
+     * @param {string} familyId - The ID of the family to check.
      */
-    match /users/{userId}/profile {
-      allow get: if isOwner(userId);
-      allow list: if false;
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
-    }
-
-    /**
-     * @description Rules for the /users/{userId}/dailySavings/{dailySavingId} collection.
-     * @path /users/{userId}/dailySavings/{dailySavingId}
-     * @allow (create, get, list, update, delete) - If the user is the owner of the daily saving record (isOwner(userId)).
-     * @deny (create, get, list, update, delete) - If the user is not the owner of the daily saving record.
-     * @principle Enforces document ownership for all operations on daily savings records.
-     */
-    match /users/{userId}/dailySavings/{dailySavingId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
-    }
-
-    /**
-     * @description Rules for the /users/{userId}/goals/{goalId} collection.
-     * @path /users/{userId}/goals/{goalId}
-     * @allow (create, get, list, update, delete) - If the user is the owner of the goal (isOwner(userId)).
-     * @deny (create, get, list, update, delete) - If the user is not the owner of the goal.
-     * @principle Enforces document ownership for all operations on user goals.
-     */
-    match /users/{userId}/goals/{goalId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
-    }
-
-    /**
-     * @description Rules for the /groups/{groupId} collection.
-     * @path /groups/{groupId}
-     * @allow (create) - If the user is signed in.
-     * @allow (get, list) - If the user is a member of the group.
-     * @allow (update, delete) - If the user is the owner of the group.
-     * @deny (create) - If the user is not signed in.
-     * @deny (get, list) - If the user is not a member of the group.
-     * @deny (update, delete) - If the user is not the owner of the group.
-     * @principle Enforces group membership for reads and owner-only access for writes.
-     */
-    match /groups/{groupId} {
-      allow get: if isGroupMember(resource.data.memberIds);
-      allow list: if true; //Allow listing of all groups
-      allow create: if isSignedIn();
-      allow update: if isExistingOwner(resource.data.ownerId);
-      allow delete: if isExistingOwner(resource.data.ownerId);
-    }
-
-    /**
-     * @description Rules for the /groups/{groupId}/contributions/{contributionId} collection.
-     * @path /groups/{groupId}/contributions/{contributionId}
-     * @allow (create, get, list, update, delete) - If the user is a member of the group.
-     * @deny (create, get, list, update, delete) - If the user is not a member of the group.
-     * @principle Enforces group membership for all operations on contributions.
-     */
-    match /groups/{groupId}/contributions/{contributionId} {
-      allow get: if isGroupMember(get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds);
-      allow list: if isGroupMember(get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds);
-      allow create: if isGroupMember(get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds);
-      allow update: if false; //Contributions should not be updated.
-      allow delete: if false; //Contributions should not be deleted.
-    }
-
-    /**
-     * @description Rules for the /groups/{groupId}/payouts/{payoutId} collection.
-     * @path /groups/{groupId}/payouts/{payoutId}
-     * @allow (create, get, list, update, delete) - If the user is a member of the group.
-     * @deny (create, get, list, update, delete) - If the user is not a member of the group.
-     * @principle Enforces group membership for all operations on payouts.
-     */
-    match /groups/{groupId}/payouts/{payoutId} {
-      allow get: if isGroupMember(get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds);
-      allow list: if isGroupMember(get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds);
-      allow create: if isGroupMember(get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds);
-      allow update: if false; // Payouts should not be updated.
-      allow delete: if false; // Payouts should not be deleted.
-    }
-
-    /**
-     * @description Rules for the /users/{userId}/budgets/{budgetId} collection.
-     * @path /users/{userId}/budgets/{budgetId}
-     * @allow (create, get, list, update, delete) - If the user is the owner of the budget (isOwner(userId)).
-     * @deny (create, get, list, update, delete) - If the user is not the owner of the budget.
-     * @principle Enforces document ownership for all operations on user budgets.
-     */
-    match /users/{userId}/budgets/{budgetId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
-    }
-
-    /**
-     * @description Rules for the /users/{userId}/budgets/{budgetId}/budgetItems/{budgetItemId} collection.
-     * @path /users/{userId}/budgets/{budgetId}/budgetItems/{budgetItemId}
-     * @allow (create, get, list, update, delete) - If the user is the owner of the budget item (isOwner(userId)).
-     * @deny (create, get, list, update, delete) - If the user is not the owner of the budget item.
-     * @principle Enforces document ownership for all operations on budget items.
-     */
-    match /users/{userId}/budgets/{budgetId}/budgetItems/{budgetItemId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
-    }
-
-    /**
-     * @description Rules for the /users/{userId}/budgets/{budgetId}/bills/{billId} collection.
-     * @path /users/{userId}/budgets/{budgetId}/bills/{billId}
-     * @allow (create, get, list, update, delete) - If the user is the owner of the bill (isOwner(userId)).
-     * @deny (create, get, list, update, delete) - If the user is not the owner of the bill.
-     * @principle Enforces document ownership for all operations on bills.
-     */
-    match /users/{userId}/budgets/{budgetId}/bills/{billId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
-    }
-
-    /**
-     * @description Rules for the /literacyTopics/{topicId} collection.
-     * @path /literacyTopics/{topicId}
-     * @allow (get, list) - Public read access.
-     * @deny (create, update, delete) - No public write access.
-     * // TODO: Add owner validation once the schema is updated with an ownership field.
-     * @principle Grants public read access to literacy topics while restricting write access.
-     */
-    match /literacyTopics/{topicId} {
-      allow get: if true;
-      allow list: if true;
-      allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-      allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-      allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-    }
-
-    /**
-     * @description Rules for the /families/{familyId} collection.
-     * @path /families/{familyId}
-     * @allow (create) - If the user is signed in.
-     * @allow (get, list) - If the user is a member of the family.
-     * @allow (update, delete) - If the user is a parent of the family.
-     * @deny (create) - If the user is not signed in.
-     * @deny (get, list) - If the user is not a member of the family.
-     * @deny (update, delete) - If the user is not a parent of the family.
-     * @principle Enforces family membership for reads and parent-only access for writes.
-     */
-    match /families/{familyId} {
-      allow get: if isFamilyMember(resource.data.parentIds, resource.data.childIds);
-      allow list: if true; //Allow listing of families
-      allow create: if isSignedIn();
-      allow update: if isGroupMember(resource.data.parentIds);
-      allow delete: if isGroupMember(resource.data.parentIds);
-    }
-
-    /**
-     * @description Rules for the /families/{familyId}/goals/{goalId} collection.
-     * @path /families/{familyId}/goals/{goalId}
-     * @allow (create, get, list, update, delete) - If the user is a member of the family.
-     * @deny (create, get, list, update, delete) - If the user is not a member of the family.
-     * @principle Enforces family membership for all operations on family goals.
-     */
-    match /families/{familyId}/goals/{goalId} {
-      allow get: if isFamilyMember(get(/databases/$(database)/documents/families/$(familyId)).data.parentIds, get(/databases/$(database)/documents/families/$(familyId)).data.childIds);
-      allow list: if isFamilyMember(get(/databases/$(database)/documents/families/$(familyId)).data.parentIds, get(/databases/$(database)/documents/families/$(familyId)).data.childIds);
-      allow create: if isFamilyMember(get(/databases/$(database)/documents/families/$(familyId)).data.parentIds, get(/databases/$(database)/documents/families/$(familyId)).data.childIds);
-      allow update: if isFamilyMember(get(/databases/$(database)/documents/families/$(familyId)).data.parentIds, get(/databases/$(database)/documents/families/$(familyId)).data.childIds);
-      allow delete: if isFamilyMember(get(/databases/$(database)/documents/families/$(familyId)).data.parentIds, get(/databases/$(database)/documents/families/$(familyId)).data.childIds);
-    }
-
-    /**
-     * @description Rules for the /users/{userId}/notifications/{notificationId} collection.
-     * @path /users/{userId}/notifications/{notificationId}
-     * @allow (create, get, list, update, delete) - If the user is the owner of the notification (isOwner(userId)).
-     * @deny (create, get, list, update, delete) - If the user is not the owner of the notification.
-     * @principle Enforces document ownership for all operations on notifications.
-     */
-    match /users/{userId}/notifications/{notificationId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
-    }
-
-    /**
-     * @description Rules for the /users/{userId}/userLiteracyTopics/{userLiteracyTopicId} collection.
-     * @path /users/{userId}/userLiteracyTopics/{userLiteracyTopicId}
-     * @allow (create, get, list, update, delete) - If the user is the owner of the user literacy topic (isOwner(userId)).
-     * @deny (create, get, list, update, delete) - If the user is not the owner of the user literacy topic.
-     * @principle Enforces document ownership for all operations on user literacy topics.
-     */
-    match /users/{userId}/userLiteracyTopics/{userLiteracyTopicId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+    function isFamilyParent(familyId) {
+      return get(/databases/$(database)/documents/families/$(familyId)).data.parentIds[request.auth.uid] == true;
     }
   }
 }
