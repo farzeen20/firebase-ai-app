@@ -18,6 +18,7 @@ import { Switch } from '../ui/switch';
 import {
   Tooltip,
   TooltipContent,
+  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 
@@ -211,14 +212,16 @@ export function FamilyMode() {
                                         <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
                                     </Avatar>
                                     <span className="font-medium">{member.name}</span>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <ShieldCheck className="h-5 w-5 text-primary" />
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p>Parental Controls Active</p>
-                                        </TooltipContent>
-                                    </Tooltip>
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                          <TooltipTrigger asChild>
+                                              <ShieldCheck className="h-5 w-5 text-primary" />
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                              <p>Parental Controls Active</p>
+                                          </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
                                 </div>
                             ))}
                         </div>
@@ -257,7 +260,7 @@ export function FamilyMode() {
                                                 Children will need approval for spending over a set amount.
                                             </p>
                                         </div>
-                                        <Switch id="spending-limit" />
+                                        <Switch id="spending-limit" onCheckedChange={() => {}} />
                                     </div>
                                     <div className="flex items-center justify-between rounded-lg border p-3">
                                         <div className="space-y-0.5">
@@ -266,7 +269,7 @@ export function FamilyMode() {
                                                 Require parental approval for new savings goals.
                                             </p>
                                         </div>
-                                        <Switch id="goal-approval" defaultChecked />
+                                        <Switch id="goal-approval" defaultChecked onCheckedChange={() => {}} />
                                     </div>
                                 </div>
                                 <DialogFooter>
@@ -282,3 +285,4 @@ export function FamilyMode() {
         </div>
     );
 }
+    
