@@ -1,4 +1,7 @@
+
 runtime: nodejs20
 build:
   command: npm run build
   output: .next
+run:
+  command: npm run start
