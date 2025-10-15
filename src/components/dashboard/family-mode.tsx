@@ -281,5 +281,4 @@ export function FamilyMode() {
             </div>
         </div>
     );
-
-    
+}
