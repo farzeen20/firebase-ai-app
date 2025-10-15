@@ -15,6 +15,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { FamilyMember } from '@/lib/definitions';
 import { Switch } from '../ui/switch';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 export function FamilyMode() {
     const { t } = useLanguage();
@@ -206,7 +211,14 @@ export function FamilyMode() {
                                         <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
                                     </Avatar>
                                     <span className="font-medium">{member.name}</span>
-                                    <ShieldCheck className="h-5 w-5 text-primary" title="Parental Controls Active" />
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <ShieldCheck className="h-5 w-5 text-primary" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Parental Controls Active</p>
+                                        </TooltipContent>
+                                    </Tooltip>
                                 </div>
                             ))}
                         </div>
@@ -269,4 +281,5 @@ export function FamilyMode() {
             </div>
         </div>
     );
-}
+
+    
