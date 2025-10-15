@@ -1,7 +1,9 @@
-
 runtime: nodejs20
 build:
   command: npm run build
   output: .next
 run:
   command: npm run start
+env:
+  - variable: GEMINI_API_KEY
+    secret: gemini-api-key
