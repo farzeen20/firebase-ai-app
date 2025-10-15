@@ -1,3 +1,4 @@
+
 import type { Goal, FamilyMember, Committee, LiteracyArticle, BudgetItem, Notification, SavingEntry } from './definitions';
 import { Target, Car, Home, GraduationCap, PiggyBank, Briefcase, HeartHandshake, Users, Wallet, BookOpen, SettingsIcon, Bell } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -23,9 +24,9 @@ export const navLinks = [
 ];
 
 export const savingsHistoryData: SavingEntry[] = [
-    { id: 's1', date: format(subDays(new Date(), 1), 'yyyy-MM-dd'), amount: 500 },
-    { id: 's2', date: format(subDays(new Date(), 2), 'yyyy-MM-dd'), amount: 750 },
-    { id: 's3', date: format(subDays(new Date(), 4), 'yyyy-MM-dd'), amount: 500 },
+    { id: 's1', date: format(subDays(new Date(), 1), 'yyyy-MM-dd'), amount: 500, createdAt: new Date().toISOString() },
+    { id: 's2', date: format(subDays(new Date(), 2), 'yyyy-MM-dd'), amount: 750, createdAt: new Date().toISOString() },
+    { id: 's3', date: format(subDays(new Date(), 4), 'yyyy-MM-dd'), amount: 500, createdAt: new Date().toISOString() },
 ];
 
 
@@ -38,7 +39,6 @@ export const goalsData: Goal[] = [
     startDate: '2023-01-15',
     endDate: '2025-01-15',
     status: 'active',
-    icon: Car,
   },
   {
     id: '2',
@@ -47,7 +47,6 @@ export const goalsData: Goal[] = [
     savedAmount: 2000000,
     startDate: '2022-06-01',
     status: 'active',
-    icon: Home,
   },
   {
     id: '3',
@@ -57,7 +56,6 @@ export const goalsData: Goal[] = [
     startDate: '2020-09-01',
     endDate: '2024-05-30',
     status: 'completed',
-    icon: GraduationCap,
   },
 ];
 

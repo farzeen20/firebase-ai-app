@@ -26,7 +26,7 @@ export type SavingEntry = {
   id: string;
   date: string; // YYYY-MM-DD
   amount: number;
-  createdAt: Timestamp | string;
+  createdAt?: Timestamp | string;
 };
 
 export type FamilyMember = {
@@ -60,3 +60,4 @@ export type Notification = {
     timestamp: string;
     read: boolean;
 };
+
