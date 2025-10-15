@@ -8,7 +8,7 @@ import { useMessaging, useUser, useFirestore, setDocumentNonBlocking } from '@/f
 import { useToast } from '@/hooks/use-toast';
 
 // IMPORTANT: This key is part of the Web Push standard and is not a secret.
-const VAPID_KEY = 'YOUR_VAPID_KEY_HERE'; // This will be replaced by a secure server-side process in a real app.
+const VAPID_KEY = process.env.NEXT_PUBLIC_VAPID_KEY;
 
 export function NotificationPermissionManager() {
   const messaging = useMessaging();
@@ -26,6 +26,11 @@ export function NotificationPermissionManager() {
         const isMessagingSupported = await isSupported();
         if (!isMessagingSupported) {
           console.log("Firebase Messaging is not supported in this browser.");
+          return;
+        }
+
+        if (!VAPID_KEY) {
+          console.warn("VAPID key not configured. Push notifications will not work.");
           return;
         }
         
