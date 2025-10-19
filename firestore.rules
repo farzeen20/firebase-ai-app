@@ -1,107 +1,62 @@
-/**
- * @fileoverview Firestore Security Rules for the application.
- *
- * Core Philosophy:
- * This ruleset enforces a strict user-ownership model for most data, with shared access for collaborative entities like Groups and Families. Public read access is granted to a specific collection containing generic financial literacy topics.
- *
- * Data Structure:
- * - /users/{userId}: Stores individual user data, accessible only to the user themselves.
- * - /users/{userId}/profile: Stores user profile information, accessible only to the user themselves.
- * - /users/{userId}/dailySavings/{dailySavingId}: Stores daily savings records, accessible only to the user.
- * - /users/{userId}/goals/{goalId}: Stores user goals, accessible only to the user.
- * - /groups/{groupId}: Stores group information with a members map, accessible to group members.
- * - /groups/{groupId}/contributions/{contributionId}: Stores contributions, accessible to group members.
- * - /groups/{groupId}/payouts/{payoutId}: Stores payouts, accessible to group members.
- * - /users/{userId}/budgets/{budgetId}: Stores budgets, accessible only to the user.
- * - /users/{userId}/budgets/{budgetId}/budgetItems/{budgetItemId}: Stores budget items, accessible only to the user.
- * - /users/{userId}/budgets/{budgetId}/bills/{billId}: Stores bills, accessible only to the user.
- * - /literacyTopics/{topicId}: Stores financial literacy topics, publicly readable.
- * - /families/{familyId}: Stores family information with parentIds and childIds maps, accessible to family members.
- * - /families/{familyId}/goals/{goalId}: Stores family goals, accessible to family members.
- * - /users/{userId}/notifications/{notificationId}: Stores notifications, accessible only to the user.
- * - /users/{userId}/userLiteracyTopics/{userLiteracyTopicId}: Stores user-literacy topic interactions, accessible only to the user.
- *
- * Key Security Decisions:
- * - Strict user ownership is enforced for all data under /users/{userId}.
- * - Public listing is enabled for /literacyTopics.
- * - Collaborative access to groups and families is managed using membership maps directly on the documents.
- *
- * Denormalization for Authorization:
- * - Groups: The 'members' map is stored directly on the group document to enable efficient membership checks.  This 'members' map is also denormalized into Contribution and Payout documents to avoid costly get() operations in security rules.
- * - Families: The 'parentIds' and 'childIds' maps are stored directly on the family document for efficient membership checks.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Checks if the user is signed in.
-     * @return {boolean} True if the user is signed in, false otherwise.
+     * @description Checks if the request is authenticated.
+     * @path N/A
      */
     function isSignedIn() {
       return request.auth != null;
     }
 
     /**
-     * @description Checks if the authenticated user's UID matches the provided userId.
-     * @param {string} userId The user ID to compare against.
-     * @return {boolean} True if the user is the owner, false otherwise.
+     * @description Checks if the authenticated user ID matches the provided user ID.
+     * @path N/A
      */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
     /**
-     * @description Checks if the user is the owner of an existing document.
-     * @param {string} userId The user ID to compare against.
-     * @return {boolean} True if the user is the owner and the resource exists, false otherwise.
+     * @description Checks if the authenticated user is the existing owner of the document.
+     * @path N/A
      */
     function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
+      return isSignedIn() && request.auth.uid == userId && resource.data != null;
     }
 
     /**
      * @description Checks if the authenticated user is a member of the group.
-     * @param {map} members A map of user IDs to boolean values indicating membership.
-     * @return {boolean} True if the user is a member, false otherwise.
+     * @path N/A
      */
-    function isGroupMember(members) {
-      return isSignedIn() && request.auth.uid in members;
+    function isGroupMember(groupId) {
+      return isSignedIn() && get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds[request.auth.uid] == true;
     }
 
     /**
      * @description Checks if the authenticated user is a parent or child of the family.
-     * @param {map} parents A map of parent user IDs to boolean values indicating membership.
-     * @param {map} children A map of child user IDs to boolean values indicating membership.
-     * @return {boolean} True if the user is a family member, false otherwise.
+     * @path N/A
      */
-    function isFamilyMember(parents, children) {
-      return isSignedIn() && (request.auth.uid in parents || request.auth.uid in children);
+    function isFamilyMember(familyId) {
+        return isSignedIn() && (get(/databases/$(database)/documents/families/$(familyId)).data.parentIds[request.auth.uid] == true || get(/databases/$(database)/documents/families/$(familyId)).data.childIds[request.auth.uid] == true);
     }
-    
+
     /**
-     * @description Rule for the /users/{userId} collection.
+     * @description Rules for the /users/{userId} collection.
      * @path /users/{userId}
-     * @allow (create) User with matching ID can create their own document.
-     * @allow (get, update, delete) Authenticated user with matching ID can access and modify their own document.
-     * @deny (create) User tries to create a document with an ID that does not match their own.
-     * @deny (get, update, delete) An unauthenticated user or a different authenticated user tries to access another user's document.
-     * @principle Enforces document ownership for writes.
      */
     match /users/{userId} {
       allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
       allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Rule for the /users/{userId}/profile collection.
+     * @description Rules for the /users/{userId}/profile collection.
      * @path /users/{userId}/profile
-     * @allow (create, get, update, delete) Authenticated user with matching ID can create, access and modify their own profile.
-     * @deny (create, get, update, delete) An unauthenticated user or a different authenticated user tries to access another user's profile.
-     * @principle Restricts access to a user's own data tree.
      */
     match /users/{userId}/profile {
       allow get: if isOwner(userId);
@@ -112,102 +67,80 @@ service cloud.firestore {
     }
 
     /**
-     * @description Rule for the /users/{userId}/dailySavings/{dailySavingId} collection.
+     * @description Rules for the /users/{userId}/dailySavings/{dailySavingId} collection.
      * @path /users/{userId}/dailySavings/{dailySavingId}
-     * @allow (create, get, update, delete) Authenticated user with matching ID can create, access and modify their own daily savings records.
-     * @deny (create, get, update, delete) An unauthenticated user or a different authenticated user tries to access another user's daily savings records.
-     * @principle Restricts access to a user's own data tree.
      */
     match /users/{userId}/dailySavings/{dailySavingId} {
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
       allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Rule for the /users/{userId}/goals/{goalId} collection.
+     * @description Rules for the /users/{userId}/goals/{goalId} collection.
      * @path /users/{userId}/goals/{goalId}
-     * @allow (create, get, update, delete) Authenticated user with matching ID can create, access and modify their own goals.
-     * @deny (create, get, update, delete) An unauthenticated user or a different authenticated user tries to access another user's goals.
-     * @principle Restricts access to a user's own data tree.
      */
     match /users/{userId}/goals/{goalId} {
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
       allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Rule for the /groups/{groupId} collection.
+     * @description Rules for the /groups/{groupId} collection.
      * @path /groups/{groupId}
-     * @allow (create) Authenticated user can create a group.
-     * @allow (get, update, delete) Authenticated user who is a member of the group can access and modify the group.
-     * @deny (create, get, update, delete) An unauthenticated user or a different authenticated user who is not a member tries to access the group.
-     * @principle Enforces membership-based access for collaborative entities.
      */
     match /groups/{groupId} {
-      allow get: if isGroupMember(resource.data.memberIds);
+      allow get: if isSignedIn();
       allow list: if false;
       allow create: if isSignedIn();
-      allow update: if isGroupMember(resource.data.memberIds);
-      allow delete: if isGroupMember(resource.data.memberIds);
+      allow update: if isGroupMember(groupId);
+      allow delete: if isGroupMember(groupId);
     }
 
     /**
-     * @description Rule for the /groups/{groupId}/contributions/{contributionId} collection.
+     * @description Rules for the /groups/{groupId}/contributions/{contributionId} collection.
      * @path /groups/{groupId}/contributions/{contributionId}
-     * @allow (create, get, update, delete) Authenticated user who is a member of the group can create, access and modify contributions.
-     * @deny (create, get, update, delete) An unauthenticated user or a different authenticated user who is not a member tries to access contributions.
-     * @principle Enforces membership-based access for collaborative entities.
      */
     match /groups/{groupId}/contributions/{contributionId} {
-      allow get: if isGroupMember(get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds);
-      allow list: if isGroupMember(get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds);
-      allow create: if isGroupMember(get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds);
-      allow update: if isGroupMember(get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds);
-      allow delete: if isGroupMember(get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds);
+      allow get: if isGroupMember(groupId);
+      allow list: if isGroupMember(groupId);
+      allow create: if isGroupMember(groupId);
+      allow update: if isGroupMember(groupId);
+      allow delete: if isGroupMember(groupId);
     }
 
     /**
-     * @description Rule for the /groups/{groupId}/payouts/{payoutId} collection.
+     * @description Rules for the /groups/{groupId}/payouts/{payoutId} collection.
      * @path /groups/{groupId}/payouts/{payoutId}
-     * @allow (create, get, update, delete) Authenticated user who is a member of the group can create, access and modify payouts.
-     * @deny (create, get, update, delete) An unauthenticated user or a different authenticated user who is not a member tries to access payouts.
-     * @principle Enforces membership-based access for collaborative entities.
      */
     match /groups/{groupId}/payouts/{payoutId} {
-      allow get: if isGroupMember(get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds);
-      allow list: if isGroupMember(get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds);
-      allow create: if isGroupMember(get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds);
-      allow update: if isGroupMember(get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds);
-      allow delete: if isGroupMember(get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds);
+      allow get: if isGroupMember(groupId);
+      allow list: if isGroupMember(groupId);
+      allow create: if isGroupMember(groupId);
+      allow update: if isGroupMember(groupId);
+      allow delete: if isGroupMember(groupId);
     }
 
     /**
-     * @description Rule for the /users/{userId}/budgets/{budgetId} collection.
+     * @description Rules for the /users/{userId}/budgets/{budgetId} collection.
      * @path /users/{userId}/budgets/{budgetId}
-     * @allow (create, get, update, delete) Authenticated user with matching ID can create, access and modify their own budgets.
-     * @deny (create, get, update, delete) An unauthenticated user or a different authenticated user tries to access another user's budgets.
-     * @principle Restricts access to a user's own data tree.
      */
     match /users/{userId}/budgets/{budgetId} {
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
       allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Rule for the /users/{userId}/budgets/{budgetId}/budgetItems/{budgetItemId} collection.
+     * @description Rules for the /users/{userId}/budgets/{budgetId}/budgetItems/{budgetItemId} collection.
      * @path /users/{userId}/budgets/{budgetId}/budgetItems/{budgetItemId}
-     * @allow (create, get, update, delete) Authenticated user with matching ID can create, access and modify their own budget items.
-     * @deny (create, get, update, delete) An unauthenticated user or a different authenticated user tries to access another user's budget items.
-     * @principle Restricts access to a user's own data tree.
      */
     match /users/{userId}/budgets/{budgetId}/budgetItems/{budgetItemId} {
       allow get: if isOwner(userId);
@@ -218,11 +151,8 @@ service cloud.firestore {
     }
 
     /**
-     * @description Rule for the /users/{userId}/budgets/{budgetId}/bills/{billId} collection.
+     * @description Rules for the /users/{userId}/budgets/{budgetId}/bills/{billId} collection.
      * @path /users/{userId}/budgets/{budgetId}/bills/{billId}
-     * @allow (create, get, update, delete) Authenticated user with matching ID can create, access and modify their own bills.
-     * @deny (create, get, update, delete) An unauthenticated user or a different authenticated user tries to access another user's bills.
-     * @principle Restricts access to a user's own data tree.
      */
     match /users/{userId}/budgets/{budgetId}/bills/{billId} {
       allow get: if isOwner(userId);
@@ -233,56 +163,44 @@ service cloud.firestore {
     }
 
     /**
-     * @description Rule for the /literacyTopics/{topicId} collection.
+     * @description Rules for the /literacyTopics/{topicId} collection.
      * @path /literacyTopics/{topicId}
-     * @allow (get, list) Public read access to financial literacy topics.
-     * @deny (create, update, delete) Only admin can create, update, and delete topics.
-     * @principle Public read access with owner-only writes.
      */
     match /literacyTopics/{topicId} {
       allow get: if true;
       allow list: if true;
-      allow create: if false; // TODO: Add admin check if needed.
-      allow update: if false; // TODO: Add admin check if needed.
-      allow delete: if false; // TODO: Add admin check if needed.
+      allow create: if false; // TODO: Add admin roles or a dedicated creation process.
+      allow update: if false; // TODO: Add admin roles or a dedicated update process.
+      allow delete: if false; // TODO: Add admin roles or a dedicated deletion process.
     }
 
     /**
-     * @description Rule for the /families/{familyId} collection.
+     * @description Rules for the /families/{familyId} collection.
      * @path /families/{familyId}
-     * @allow (create, get, update, delete) Authenticated user who is a member of the family can create, access and modify the family.
-     * @deny (create, get, update, delete) An unauthenticated user or a different authenticated user who is not a member tries to access the family.
-     * @principle Enforces membership-based access for collaborative entities.
      */
     match /families/{familyId} {
-      allow get: if isFamilyMember(resource.data.parentIds, resource.data.childIds);
+      allow get: if isFamilyMember(familyId);
       allow list: if false;
       allow create: if isSignedIn();
-      allow update: if isFamilyMember(resource.data.parentIds, resource.data.childIds);
-      allow delete: if isFamilyMember(resource.data.parentIds, resource.data.childIds);
+      allow update: if isFamilyMember(familyId);
+      allow delete: if isFamilyMember(familyId);
     }
-
+    
     /**
-     * @description Rule for the /families/{familyId}/goals/{goalId} collection.
+     * @description Rules for the /families/{familyId}/goals/{goalId} collection.
      * @path /families/{familyId}/goals/{goalId}
-     * @allow (create, get, update, delete) Authenticated user who is a member of the family can create, access and modify family goals.
-     * @deny (create, get, update, delete) An unauthenticated user or a different authenticated user who is not a member tries to access family goals.
-     * @principle Enforces membership-based access for collaborative entities.
      */
-     match /families/{familyId}/goals/{goalId} {
-      allow get: if isFamilyMember(get(/databases/$(database)/documents/families/$(familyId)).data.parentIds, get(/databases/$(database)/documents/families/$(familyId)).data.childIds);
-      allow list: if isFamilyMember(get(/databases/$(database)/documents/families/$(familyId)).data.parentIds, get(/databases/$(database)/documents/families/$(familyId)).data.childIds);
-      allow create: if isFamilyMember(get(/databases/$(database)/documents/families/$(familyId)).data.parentIds, get(/databases/$(database)/documents/families/$(familyId)).data.childIds);
-      allow update: if isFamilyMember(get(/databases/$(database)/documents/families/$(familyId)).data.parentIds, get(/databases/$(database)/documents/families/$(familyId)).data.childIds);
-      allow delete: if isFamilyMember(get(/databases/$(database)/documents/families/$(familyId)).data.parentIds, get(/databases/$(database)/documents/families/$(familyId)).data.childIds);
+    match /families/{familyId}/goals/{goalId} {
+      allow get: if isFamilyMember(familyId);
+      allow list: if isFamilyMember(familyId);
+      allow create: if isFamilyMember(familyId);
+      allow update: if isFamilyMember(familyId);
+      allow delete: if isFamilyMember(familyId);
     }
 
     /**
-     * @description Rule for the /users/{userId}/notifications/{notificationId} collection.
+     * @description Rules for the /users/{userId}/notifications/{notificationId} collection.
      * @path /users/{userId}/notifications/{notificationId}
-     * @allow (create, get, update, delete) Authenticated user with matching ID can create, access and modify their own notifications.
-     * @deny (create, get, update, delete) An unauthenticated user or a different authenticated user tries to access another user's notifications.
-     * @principle Restricts access to a user's own data tree.
      */
     match /users/{userId}/notifications/{notificationId} {
       allow get: if isOwner(userId);
@@ -293,11 +211,8 @@ service cloud.firestore {
     }
 
     /**
-     * @description Rule for the /users/{userId}/userLiteracyTopics/{userLiteracyTopicId} collection.
+     * @description Rules for the /users/{userId}/userLiteracyTopics/{userLiteracyTopicId} collection.
      * @path /users/{userId}/userLiteracyTopics/{userLiteracyTopicId}
-     * @allow (create, get, update, delete) Authenticated user with matching ID can create, access and modify their own literacy topic interactions.
-     * @deny (create, get, update, delete) An unauthenticated user or a different authenticated user tries to access another user's literacy topic interactions.
-     * @principle Restricts access to a user's own data tree.
      */
     match /users/{userId}/userLiteracyTopics/{userLiteracyTopicId} {
       allow get: if isOwner(userId);
